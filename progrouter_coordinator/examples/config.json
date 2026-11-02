@@ -1,0 +1,36 @@
+{
+  "coordinator": {
+    "base_url": "http://localhost:8000/v1",
+    "model": "REPLACE_WITH_SERVED_COORDINATOR_MODEL",
+    "max_tokens": 2048
+  },
+  "workers": {
+    "analyst": {
+      "base_url": "http://localhost:8001/v1",
+      "model": "REPLACE_WITH_SERVED_WORKER_MODEL",
+      "max_tokens": 2048
+    },
+    "coder": {
+      "base_url": "http://localhost:8001/v1",
+      "model": "REPLACE_WITH_SERVED_WORKER_MODEL",
+      "max_tokens": 4096
+    },
+    "reviewer": {
+      "base_url": "http://localhost:8001/v1",
+      "model": "REPLACE_WITH_SERVED_WORKER_MODEL",
+      "max_tokens": 2048
+    }
+  },
+  "limits": {
+    "max_worker_steps": 10,
+    "max_llm_calls": 30,
+    "max_seconds": 600,
+    "request_timeout": 120,
+    "max_prompt_chars": 120000,
+    "protocol_retries": 1
+  },
+  "visible_test_tool": {
+    "image": "python:3.12-slim",
+    "timeout": 10
+  }
+}

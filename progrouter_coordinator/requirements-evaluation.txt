@@ -1,0 +1,4 @@
+evalplus>=0.3,<0.4
+math-verify[antlr4_13_2]>=0.8,<0.9
+transformers>=4.45,<5
+torch>=2.4,<3

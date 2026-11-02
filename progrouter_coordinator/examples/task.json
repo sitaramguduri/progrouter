@@ -1,0 +1,10 @@
+{
+  "task_id": "triangular-demo",
+  "problem": "Implement triangular(n) in Python. For a nonnegative integer n return the integer sum 1 + ... + n, with triangular(0) = 0. Raise ValueError for negative n.",
+  "visible_tests": [
+    "assert triangular(0) == 0",
+    "assert triangular(4) == 10",
+    "assert isinstance(triangular(3), int)",
+    "try:\n    triangular(-1)\nexcept ValueError:\n    pass\nelse:\n    raise AssertionError('negative input must raise ValueError')"
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "coordinator": {
+    "base_url": "http://localhost:8000/v1",
+    "model": "REPLACE_WITH_SERVED_COORDINATOR_MODEL",
+    "max_tokens": 2048
+  },
+  "limits": {
+    "max_worker_steps": 10,
+    "max_llm_calls": 30,
+    "max_seconds": 600,
+    "request_timeout": 120,
+    "max_prompt_chars": 120000,
+    "protocol_retries": 1
+  },
+  "visible_test_tool": {
+    "image": "python:3.12-slim",
+    "timeout": 10
+  },
+  "routing": {
+    "energy_budget": 1000,
+    "time_budget": 300,
+    "average_energy": 500,
+    "tradeoff": 1000,
+    "queue": 0,
+    "epsilon": 0.1,
+    "seed": 0,
+    "epsilon_decay": 0.99,
+    "epsilon_min": 0.01,
+    "cost_basis": "measured_task"
+  },
+  "candidates": {
+    "analyst": [
+      {
+        "model": {
+          "base_url": "http://localhost:8001/v1",
+          "model": "REPLACE_WITH_SMALL_MODEL"
+        },
+        "energy": 10,
+        "seconds": 2
+      },
+      {
+        "model": {
+          "base_url": "http://localhost:8002/v1",
+          "model": "REPLACE_WITH_STRONG_MODEL"
+        },
+        "energy": 40,
+        "seconds": 5
+      }
+    ],
+    "coder": [
+      {
+        "model": {
+          "base_url": "http://localhost:8001/v1",
+          "model": "REPLACE_WITH_SMALL_MODEL"
+        },
+        "energy": 10,
+        "seconds": 2
+      },
+      {
+        "model": {
+          "base_url": "http://localhost:8002/v1",
+          "model": "REPLACE_WITH_STRONG_MODEL"
+        },
+        "energy": 40,
+        "seconds": 5
+      }
+    ],
+    "reviewer": [
+      {
+        "model": {
+          "base_url": "http://localhost:8001/v1",
+          "model": "REPLACE_WITH_SMALL_MODEL"
+        },
+        "energy": 10,
+        "seconds": 2
+      },
+      {
+        "model": {
+          "base_url": "http://localhost:8002/v1",
+          "model": "REPLACE_WITH_STRONG_MODEL"
+        },
+        "energy": 40,
+        "seconds": 5
+      }
+    ]
+  },
+  "energy_measurement": {
+    "devices": [
+      0
+    ],
+    "idle_watts": [
+      0.0
+    ],
+    "interval": 0.1
+  },
+  "task_budget": {
+    "energy_joules": 1000,
+    "seconds": 300
+  }
+}

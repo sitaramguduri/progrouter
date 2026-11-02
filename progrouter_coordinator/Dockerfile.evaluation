@@ -1,0 +1,6 @@
+# Build separately, then use its image name/digest with benchmarks.py evaluate.
+FROM python:3.12-slim
+COPY requirements-evaluation.txt /tmp/requirements-evaluation.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-evaluation.txt
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+# For ASQA, extend this image with a local NLI checkpoint at /models/nli.
