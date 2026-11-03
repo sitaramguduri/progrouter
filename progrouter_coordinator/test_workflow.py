@@ -90,7 +90,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_unknown_role_is_repaired_before_worker_executes(self):
         result, client, _, _ = self.run_case([
-            dispatch("unknown"), dispatch("analyst"), worker(), finish()
+            dispatch("unknown"), dispatch("analyst"), worker(code="def f(): return 1"), finish()
         ])
         self.assertEqual(result["status"], "coordinator_finished")
         self.assertEqual([r["model"] for r in client.requests],
@@ -113,7 +113,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_worker_limit_still_allows_final_coordinator_decision(self):
         result, _, _, _ = self.run_case([
-            dispatch("analyst"), worker(), finish()
+            dispatch("analyst"), worker(code="def f(): return 1"), finish()
         ], limits=Limits(max_worker_steps=1))
         self.assertEqual(result["status"], "coordinator_finished")
 

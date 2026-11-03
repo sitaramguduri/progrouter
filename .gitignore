@@ -2,3 +2,6 @@
 progrouter_coordinator/prepared/
 progrouter_coordinator/runs/
 /progrouter_coordinator/evaluator-data/
+progrouter_coordinator/__pycache__/
+
+progrouter_coordinator/examples/

@@ -9,8 +9,11 @@ def tokenizer(name):
 
 
 def input_tokens(model, messages):
-    return len(tokenizer(model.tokenizer_name).apply_chat_template(
-        messages, tokenize=True, add_generation_prompt=True))
+    ids = tokenizer(model.tokenizer_name).apply_chat_template(
+        messages, tokenize=True, add_generation_prompt=True, return_dict=False)
+    if not isinstance(ids, list) or any(not isinstance(token, int) for token in ids):
+        raise RuntimeError('Tokenizer must return a flat token-ID list; refusing an invalid context estimate')
+    return len(ids)
 
 
 def check_context(model, messages):

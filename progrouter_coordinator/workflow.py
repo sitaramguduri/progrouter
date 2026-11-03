@@ -34,12 +34,37 @@ def prompt_ledger(ledger):
     """
     result = dict(ledger)
     result['history'] = []
+    observed_code = None
+    latest_feedback = None
     for step in ledger.get('history', []):
-        compact = {k: v for k, v in step.items() if k not in {'routing', 'code', 'progress_gain'}}
+        if step.get('code') is not None and step['code'] != observed_code:
+            observed_code = step['code']
+            latest_feedback = None
+        if step.get('visible_feedback') and step['visible_feedback'].get('status') != 'invalid_code':
+            latest_feedback = step['visible_feedback']
+        compact = {k: v for k, v in step.items() if k not in {'routing', 'code', 'rejected_code', 'progress_gain'}}
         compact['code_updated'] = step.get('code') is not None
         result['history'].append(compact)
+    result['latest_visible_feedback'] = latest_feedback or {'status': 'not_run_for_current_code'}
     result['history_representation'] = 'all decisions and feedback; code supplied in current_code; router diagnostics in events'
     return result
+
+
+def material_state(ledger):
+    feedback = next((s['visible_feedback'] for s in reversed(ledger.get('history', []))
+                     if s.get('visible_feedback')), None)
+    if feedback:
+        feedback = {k: v for k, v in feedback.items() if k not in {'output_tail', 'message'}}
+    return json.dumps([ledger.get('current_code'), feedback], sort_keys=True)
+
+
+def stagnant_steps(ledger):
+    count = 0
+    for step in reversed(ledger.get('history', [])):
+        if step.get('material_change', True):
+            break
+        count += 1
+    return count
 
 
 def json_object(text: str) -> dict:
@@ -108,6 +133,7 @@ class Limits:
     request_timeout: float = 120.0
     max_prompt_chars: int = 120_000
     protocol_retries: int = 1
+    max_stagnant_steps: int = 4
 
     def __post_init__(self):
         if min(self.max_worker_steps, self.max_llm_calls, self.max_seconds,
@@ -115,6 +141,8 @@ class Limits:
             raise ValueError("Limits must be positive")
         if self.protocol_retries < 0:
             raise ValueError("protocol_retries must be nonnegative")
+        if self.max_stagnant_steps < 1:
+            raise ValueError('max_stagnant_steps must be positive')
 
 
 @dataclasses.dataclass
@@ -295,7 +323,9 @@ Start with { and end with }. Never prefix it with Dispatch:, Finish:, or Abort:.
 Choose one of these object shapes according to the action field:
 {"action":"dispatch", "role":"one available role", "subtask":"specific work", "plan":["updated plan item"], "reason":"brief dispatch justification"}
 {"action":"finish", "plan":["final plan"], "final_answer":"final response", "reason":"why ready to finish"}
-{"action":"abort", "reason":"why unable to continue"}
+{"action":"abort", "blocker":"actual obstacle preventing completion", "reason":"why unable to continue"}
+Use finish when work is ready, even if hidden correctness is unknown. Use abort
+only for an actual blocker, never to say that the solution is correct or complete.
 You may include "state_summary": a compact summary of current progress and bottlenecks.
 Dispatch at least one worker before finishing. A finish decision expresses your
 judgment of readiness; it is not a correctness label. Preserve code in the ledger
@@ -310,6 +340,19 @@ Once requirements are understood, dispatch a coder to WRITE FULL CODE. Do not
 ask the analyst to restate the problem. You have no tool for enabling tests.
 """
 
+CODER_PROMPT = """You implement Python solutions in a ledger-driven workflow.
+Return exactly one JSON object:
+{"message":"brief implementation notes", "code":"def example(x):\\n    return x", "run_tests":true}
+The example function illustrates the response format only. Implement the actual
+function requested in task.problem, including needed imports and helper functions.
+The code field must contain full executable Python, never null, the string "null",
+Markdown fences, a patch, an outline, or a docstring-only function.
+Use a short message and omit copied problem docstrings to leave room for code.
+If a previous proposal was rejected, repair the exact code_validation error.
+Even without execution access, provide your best concrete implementation.
+Do not claim hidden tests passed.
+"""
+
 WORKER_PROMPT = """You are a specialized worker in a ledger-driven workflow.
 Perform only the coordinator's requested subtask, using the task and prior ledger.
 Previous outputs can be wrong; use visible feedback where available.
@@ -318,6 +361,8 @@ Return exactly one JSON object with keys:
 Start with { and end with }; do not add labels or Markdown outside the object.
 For a code update, replace null with the COMPLETE Python implementation, not a
 patch or fenced block. For review/analysis without a code change, use null.
+If your role is coder, always return the full implementation in code, not null
+or an outline. Implement a concrete proposal even if you cannot execute it.
 Set run_tests=true to request visible tests on the current or updated code.
 Do not claim that hidden tests passed; you have no access to them.
 """
@@ -394,6 +439,29 @@ class CoordinatorWorkflow:
                            "execution_capabilities": ledger["execution_capabilities"],
                            "completed_subtasks": [s['subtask'] for s in ledger['history']],
                            "worker_steps_remaining": self.limits.max_worker_steps - len(ledger["history"])}
+                stalled = stagnant_steps(ledger)
+                if 'coder' in self.roles and not ledger['current_code']:
+                    payload['allowed_actions'] = ['dispatch', 'abort']
+                    if stalled >= 2:
+                        payload['dispatch_roles'] = ['coder']
+                        payload['recovery_context'] = ('Analysis has not produced executable code. '
+                            'Dispatch coder to return a full implementation. Abort only for an actual blocker.')
+                if ledger.get('code_validation', {}).get('status') == 'invalid':
+                    payload['code_repair_context'] = ('The latest proposed code was rejected by static checks. '
+                        'Read code_validation, repair the exact error, and return full code. '
+                        'current_code retains the last accepted implementation, if any.')
+                if stalled >= self.limits.max_stagnant_steps:
+                    payload['recovery_context'] = ('No code or observable test-result change in '
+                        f'{stalled} worker attempts. Stop repeating analysis. '
+                        'Dispatch concrete implementation/repair, finish if ready, or abort with an actual blocker.')
+                if stalled >= self.limits.max_stagnant_steps+2:
+                    payload['allowed_actions'] = ['finish', 'abort']
+                    payload['recovery_context'] = 'Bounded stall recovery exhausted. Finish with uncertainty or abort with the unresolved blocker.'
+                if payload['worker_steps_remaining'] <= 0:
+                    payload['allowed_actions'] = ['finish', 'abort']
+                    payload['decision_context'] = 'Worker budget exhausted. Finish with available artifacts or abort with an actual blocker.'
+                if 'coder' in self.roles and not ledger['current_code'] and 'allowed_actions' in payload:
+                    payload['allowed_actions'] = [a for a in payload['allowed_actions'] if a != 'finish']
                 if ledger['current_code'] and ledger['history'] and ledger['history'][-1]['role'] == 'reviewer':
                     payload['decision_context'] = ('A review of current_code is already available. '
                         'Finish if no actionable defect was identified, otherwise dispatch a concrete repair. '
@@ -406,8 +474,9 @@ class CoordinatorWorkflow:
                     ledger["plan"] = decision["plan"]
                 self._event("coordinator_decision", decision)
                 if decision["action"] == "abort":
-                    ledger["status"] = "coordinator_aborted"
+                    ledger["status"] = 'stalled' if stalled >= self.limits.max_stagnant_steps+2 else "coordinator_aborted"
                     ledger["stop_reason"] = decision["reason"]
+                    ledger['blocker'] = decision['blocker']
                     break
                 if decision["action"] == "finish":
                     if not ledger["history"]:
@@ -415,6 +484,9 @@ class CoordinatorWorkflow:
                     ledger["status"] = "coordinator_finished"
                     ledger["final_answer"] = decision["final_answer"]
                     ledger["stop_reason"] = decision["reason"]
+                    break
+                if stalled >= self.limits.max_stagnant_steps+2:
+                    ledger['status'], ledger['stop_reason'] = 'stalled', 'no_material_change_after_bounded_recovery'
                     break
                 if len(ledger["history"]) >= self.limits.max_worker_steps:
                     raise LimitReached("max_worker_steps")
@@ -432,9 +504,11 @@ class CoordinatorWorkflow:
                     self._event("progress_prediction", prediction)
                 calls_before_worker = self.calls
                 try:
-                    worker = self._structured(model, WORKER_PROMPT,
+                    worker = self._structured(model, CODER_PROMPT if role == 'coder' else WORKER_PROMPT,
                         {"role": role, "role_description": self.roles[role],
-                         "subtask": decision["subtask"], "ledger": prompt_ledger(before)},
+                         "subtask": decision["subtask"], "ledger": prompt_ledger(before),
+                         "implementation_contract": ("Return the complete function in code. Do not copy the prompt docstring. "
+                             "Repair the latest static error; no placeholder values." if role == "coder" else None)},
                         self._validate_worker, "worker:" + role)
                 except Exception as error:
                     # Failed executed actions are observations too. Omitting them
@@ -461,15 +535,30 @@ class CoordinatorWorkflow:
                                 self._event('predictor_observation', {'exploration': routing['exploration'], 'refitted': fitted})
                         self._event('worker_transition', {'state_before': before, 'entry': entry, 'state_after': ledger})
                     raise
-                if worker["code"] is not None:
-                    ledger["current_code"] = worker["code"]
+                proposed_code = worker['code']
+                code_check = None
+                rejected = False
+                code_changed = False
+                if proposed_code is not None or role == 'coder':
+                    from code_checks import validate_code
+                    code_check = validate_code(proposed_code, task.problem)
+                    rejected = code_check['status'] == 'invalid'
+                    ledger['code_validation'] = code_check
+                    if not rejected:
+                        code_changed = proposed_code != ledger['current_code']
+                        ledger['current_code'] = proposed_code
                 pending_error = None
                 try:
                     self._check_time()
                 except (LimitReached, RuntimeError) as error:
                     pending_error = error
-                feedback = {"status": "skipped_budget_or_measurement", "passed": None} if worker["run_tests"] and pending_error else None
-                if worker["run_tests"] and pending_error is None:
+                tests_requested = worker['run_tests'] or (code_changed and bool(task.visible_tests)
+                    and not isinstance(self.tests, DisabledTests))
+                feedback = ({'status': 'invalid_code', 'passed': False, 'validation': code_check}
+                            if rejected else None)
+                if tests_requested and pending_error and not rejected:
+                    feedback = {"status": "skipped_budget_or_measurement", "passed": None}
+                if tests_requested and pending_error is None and not rejected:
                     if ledger["current_code"] is None:
                         feedback = {"status": "no_code", "passed": None}
                     else:
@@ -477,9 +566,16 @@ class CoordinatorWorkflow:
                                                   max(0.01, self._remaining_seconds()))
                 entry = {"step": len(ledger["history"]) + 1, "role": role,
                          "model": model.model, "subtask": decision["subtask"],
-                         "message": worker["message"], "code": worker["code"],
+                         "message": worker["message"], "code": None if rejected else proposed_code,
                          "visible_feedback": feedback}
+                if code_check is not None:
+                    entry['code_validation'] = code_check
+                if rejected:
+                    entry['rejected_code'] = proposed_code
+                    entry['worker_error'] = 'InvalidCode'
+                entry['test_trigger'] = 'automatic_code_change' if code_changed and tests_requested else ('worker_request' if worker['run_tests'] else None)
                 ledger["history"].append(entry)
+                entry['material_change'] = not rejected and material_state(ledger) != material_state(before)
                 if self.progress_scorer is not None:
                     current_observation = coding_observation(ledger)
                     next_score = self.progress_scorer.score(current_observation, observation, completion_deltas)
@@ -514,6 +610,11 @@ class CoordinatorWorkflow:
                                               for s in ledger['history']),
                 'hidden_correctness': None,
                 'note': 'Coordinator statements are not independent correctness judgments.'}
+            current_feedback = prompt_ledger(ledger)['latest_visible_feedback']
+            current_result = current_feedback.get('result') or {}
+            ledger['verification_status']['current_code_public_tests_passed'] = (
+                current_result.get('passed') == current_result.get('total')
+                if current_feedback.get('status') == 'completed' and current_result.get('total', 0) > 0 else None)
             energy_result = self.energy_monitor.stop() if self.energy_monitor is not None else {'status': 'disabled', 'energy_joules': None}
             if self.energy_monitor is not None and energy_result['status'] != 'measured' and ledger['status'] != 'error':
                 ledger['status'], ledger['stop_reason'] = 'error', 'Energy measurement failed at task completion'
@@ -553,8 +654,10 @@ class CoordinatorWorkflow:
                     {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}]
         for attempt in range(self.limits.protocol_retries + 1):
             self._check_limits()
-            if sum(len(m["content"]) for m in messages) > self.limits.max_prompt_chars:
-                raise LimitReached("max_prompt_chars; ledger was not silently truncated")
+            from prompt_budget import prepare_messages
+            messages, compaction = prepare_messages(model, messages, self.limits.max_prompt_chars)
+            if compaction:
+                self._event('prompt_compacted', {'kind': kind, 'attempt': attempt, **compaction})
             if model.context_tokens is not None:
                 from token_budget import check_context
                 check_context(model, messages)
@@ -566,7 +669,9 @@ class CoordinatorWorkflow:
                 request_model = model
                 if model.schema_mode:
                     from output_schemas import schema
-                    request_model = dataclasses.replace(model, response_schema=schema(kind, self.roles))
+                    schema_roles = payload.get('dispatch_roles', self.roles) if kind == 'coordinator' else self.roles
+                    request_model = dataclasses.replace(model, response_schema=schema(kind, schema_roles,
+                        payload.get('allowed_actions') if kind == 'coordinator' else None))
                 reply = self.client.complete(request_model, messages,
                                             min(self.limits.request_timeout, self._remaining_seconds()))
             except Exception as exc:
@@ -602,8 +707,9 @@ class CoordinatorWorkflow:
                     raise
                 # Do not seed a repair with the rejected answer as another
                 # assistant demonstration: small models often copy it verbatim.
-                messages[0]['content'] += '\nYour previous response was rejected: '+str(exc)
-                messages.append({"role": "user", "content": "Return a corrected JSON decision/output. " + str(exc)})
+                messages = [{"role": "system", "content": system},
+                            {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+                            {"role": "user", "content": "Return a corrected JSON decision/output. " + str(exc)}]
         raise AssertionError("Unreachable")
 
     def _validate_decision(self, d):
@@ -622,28 +728,17 @@ class CoordinatorWorkflow:
                 raise ProtocolError("role must be one of " + ", ".join(self.roles))
             if not isinstance(d.get("subtask"), str) or not d["subtask"].strip():
                 raise ProtocolError("subtask must be a nonempty string")
-        if action == "finish" and not isinstance(d.get("final_answer"), str):
+        if action == "finish" and (not isinstance(d.get("final_answer"), str) or not d['final_answer'].strip()):
             raise ProtocolError("finish requires string final_answer")
+        if action == 'abort' and (not isinstance(d.get('blocker'), str) or not d['blocker'].strip()):
+            raise ProtocolError('abort requires an actual nonempty blocker; use finish for completed work')
 
     def _validate_next_decision(self, decision, ledger):
         self._validate_decision(decision)
-        if decision['action'] != 'dispatch':
-            return
-        history = ledger['history']
-        if history:
-            last = history[-1]
-            if last['role'] == decision['role'] and last['subtask'].strip() == decision['subtask'].strip():
-                feedback = last.get('visible_feedback') or {}
-                previous_code = next((s['code'] for s in reversed(history[:-1]) if s.get('code') is not None), None)
-                code_changed = last.get('code') is not None and last['code'] != previous_code
-                if not code_changed and feedback.get('status') in {None, 'disabled', 'unavailable', 'no_visible_tests'}:
-                    guidance = ('The review is complete. If no concrete defect remains, return '
-                        '{"action":"finish","final_answer":"Implementation provided; correctness unverified.",'
-                        '"reason":"Review completed; tests unavailable"}. Otherwise dispatch a concrete repair.'
-                        if ledger.get('current_code') else
-                        'Analysis is already available. Dispatch a coder to write the full Python implementation now.')
-                    raise ProtocolError('Do not repeat the identical completed subtask without new feedback. '
-                                        'You cannot install or enable test tools. '+guidance)
+        if decision["action"] == "finish" and "coder" in self.roles and not ledger.get("current_code"):
+            raise ProtocolError("Cannot finish without accepted code. Dispatch coder to write a full implementation, or abort with an actual blocker.")
+        # Repetition is a planning/recovery concern, not malformed JSON.
+        # Progress and repeated evidence are handled by the bounded stall policy.
 
     @staticmethod
     def _validate_worker(d):

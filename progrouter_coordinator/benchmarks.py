@@ -121,7 +121,7 @@ def prepare(source, benchmark, public_dir, private_path, *, split='dev', visible
         raise ValueError('Use fresh public and private output paths')
     public_dir.mkdir(parents=True, exist_ok=True)
     manifest = {'version': 1, 'benchmark': benchmark, 'seed': seed, 'limit': limit,
-                'public_check_protocol': 'prompt-doctests-v1',
+                'public_check_protocol': 'prompt-doctests-v2',
                 'dataset_sha256': hashlib.sha256(source.read_bytes()).hexdigest(), 'tasks': []}
     private_records = []
     for i, (public, private) in enumerate(prepared):

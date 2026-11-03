@@ -1,5 +1,10 @@
 # ProgRouter implementation audit — 2026-11-02
 
+Update: the 100-question run later exposed protocol and tokenizer-return-type
+bugs missed by this initial audit. See `WORKFLOW_RECOVERY.md` for the corrections
+and real Docker/EvalPlus validation. The earlier diagnostic conclusions do not
+establish correctness of the old context/cost token counts.
+
 Scope: the supplied ProgRouter PDF, Sections 3.2–3.4 and Appendix D, versus this
 independent coding-domain implementation. Smaller worker/coordinator models do
 not invalidate the routing equations, but do affect workflow reliability and

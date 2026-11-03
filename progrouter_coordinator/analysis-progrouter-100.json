@@ -1,0 +1,69 @@
+{
+  "reports-progrouter-100.json": {
+    "all": {
+      "tasks": 100,
+      "worker_model_distribution": {
+        "progrouter-coder:7b": 11,
+        "progrouter-coder:0.5b": 32,
+        "progrouter-coder:3b": 9,
+        "progrouter-coder:1.5b": 434
+      },
+      "evaluated": 100,
+      "unavailable_or_error": 0,
+      "pass_rate_evaluated": 0.21,
+      "pass_rate_all_tasks": 0.21,
+      "citation_precision_macro": null,
+      "measured_energy_tasks": 100,
+      "mean_measured_energy_joules": 1432.612235718344,
+      "mean_seconds": 44.580830050595104,
+      "workflow_statuses": {
+        "error": 60,
+        "limit_reached": 10,
+        "coordinator_finished": 23,
+        "coordinator_aborted": 7
+      }
+    },
+    "warm_up": {
+      "tasks": 1,
+      "worker_model_distribution": {
+        "progrouter-coder:7b": 2,
+        "progrouter-coder:0.5b": 1,
+        "progrouter-coder:3b": 1
+      },
+      "evaluated": 1,
+      "unavailable_or_error": 0,
+      "pass_rate_evaluated": 0.0,
+      "pass_rate_all_tasks": 0.0,
+      "citation_precision_macro": null,
+      "measured_energy_tasks": 1,
+      "mean_measured_energy_joules": 1090.4844502262806,
+      "mean_seconds": 27.44573723617941,
+      "workflow_statuses": {
+        "error": 1
+      }
+    },
+    "steady_state": {
+      "tasks": 99,
+      "worker_model_distribution": {
+        "progrouter-coder:1.5b": 434,
+        "progrouter-coder:3b": 8,
+        "progrouter-coder:7b": 9,
+        "progrouter-coder:0.5b": 31
+      },
+      "evaluated": 99,
+      "unavailable_or_error": 0,
+      "pass_rate_evaluated": 0.21212121212121213,
+      "pass_rate_all_tasks": 0.21212121212121213,
+      "citation_precision_macro": null,
+      "measured_energy_tasks": 99,
+      "mean_measured_energy_joules": 1436.0680719354355,
+      "mean_seconds": 44.75391179619526,
+      "workflow_statuses": {
+        "error": 59,
+        "limit_reached": 10,
+        "coordinator_finished": 23,
+        "coordinator_aborted": 7
+      }
+    }
+  }
+}

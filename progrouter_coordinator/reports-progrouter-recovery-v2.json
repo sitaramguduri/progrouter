@@ -1,0 +1,369 @@
+{
+  "dataset_sha256": "42526ec0e7d5f3ee0b06d6ced98f8c8bae3d76519151bfb3d36f79010645bd7f",
+  "summary": {
+    "tasks": 5,
+    "worker_model_distribution": {
+      "progrouter-coder:7b": 2,
+      "progrouter-coder:0.5b": 1,
+      "progrouter-coder:3b": 2,
+      "progrouter-coder:1.5b": 16
+    },
+    "evaluated": 5,
+    "unavailable_or_error": 0,
+    "pass_rate_evaluated": 0.6,
+    "pass_rate_all_tasks": 0.6,
+    "citation_precision_macro": null,
+    "measured_energy_tasks": 5,
+    "mean_measured_energy_joules": 1474.6528278344235
+  },
+  "reports": [
+    {
+      "task_id": "HumanEval/146",
+      "benchmark": "humaneval_plus",
+      "model_calls": {
+        "progrouter-coder:7b": 2,
+        "progrouter-coder:0.5b": 1
+      },
+      "task_hash": "4ad5e07ea56c27da094828dcc8b5e93da029f3c1f0b22e66099d1e06b6eb2a3a",
+      "reference_hash": "e65acc2fcdb979eb3c36ad999d0ccd09ba389061be91ee3c64f98c16db564277",
+      "artifact_hash": "b1705af5c9164cd7dac5686132708dba3bd3a5f2959d089b9f9dc81f8736a23f",
+      "evaluation": {
+        "status": "evaluated",
+        "passed": true,
+        "metric": "evalplus_base_and_plus",
+        "base_status": "pass",
+        "plus_status": "pass"
+      },
+      "final_correctness": true,
+      "workflow_status": "coordinator_finished",
+      "workflow_metrics": {
+        "llm_calls": 7,
+        "worker_steps": 3,
+        "elapsed_seconds": 17.30817146995105,
+        "token_usage": {
+          "prompt_tokens": 6737,
+          "completion_tokens": 704,
+          "total_tokens": 7441
+        },
+        "final_correctness": null,
+        "energy_joules": 996.3841687951767,
+        "energy_measurement": {
+          "status": "measured",
+          "energy_joules": 996.3841687951767,
+          "gross_joules": 1372.3814720450923,
+          "partial_incremental_joules": 996.3841687951767,
+          "samples": 195,
+          "error": null,
+          "devices": [
+            "GPU-4ac92c77-88d9-6d30-7cc0-eb78d352997d"
+          ],
+          "idle_watts": [
+            21.9786
+          ],
+          "interval_seconds": 0.1
+        },
+        "task_budget": {
+          "energy_joules": 10000,
+          "seconds": 120
+        },
+        "task_budget_exceeded": {
+          "energy": false,
+          "seconds": false
+        },
+        "routing": {
+          "estimated_worker_energy": 3214.139607842788,
+          "estimated_worker_seconds": 32.38172038550836,
+          "accounted_energy": 996.3841687951767,
+          "cost_basis": "measured_task",
+          "energy_budget": 10000,
+          "time_budget": 120,
+          "queue": 0.0,
+          "epsilon": 0.0970299,
+          "predictor_ready": false,
+          "buffer_samples": 3,
+          "collected_samples": 3,
+          "completed_tasks": 1
+        }
+      },
+      "evaluator_image": "progrouter-coding-evaluator"
+    },
+    {
+      "task_id": "HumanEval/67",
+      "benchmark": "humaneval_plus",
+      "model_calls": {
+        "progrouter-coder:3b": 1,
+        "progrouter-coder:1.5b": 2
+      },
+      "task_hash": "e6a180b00481d8f90f6b3c71149c4eea98d627c5aa1597ecec0c4adbeeaf6d76",
+      "reference_hash": "966f5697ded11b3a39dbe3e72758724455df20401f2fc0e00e77ac280d33d54c",
+      "artifact_hash": "12563c728ab5bc3ff2552dd46dec4db9b49126f9507ca2f00f2db1500cae6c02",
+      "evaluation": {
+        "status": "evaluated",
+        "passed": true,
+        "metric": "evalplus_base_and_plus",
+        "base_status": "pass",
+        "plus_status": "pass"
+      },
+      "final_correctness": true,
+      "workflow_status": "coordinator_finished",
+      "workflow_metrics": {
+        "llm_calls": 7,
+        "worker_steps": 3,
+        "elapsed_seconds": 29.85436444194056,
+        "token_usage": {
+          "prompt_tokens": 7377,
+          "completion_tokens": 649,
+          "total_tokens": 8026
+        },
+        "final_correctness": null,
+        "energy_joules": 973.5391157021941,
+        "energy_measurement": {
+          "status": "measured",
+          "energy_joules": 973.5391157021941,
+          "gross_joules": 1629.6883243646232,
+          "partial_incremental_joules": 973.5391157021941,
+          "samples": 319,
+          "error": null,
+          "devices": [
+            "GPU-4ac92c77-88d9-6d30-7cc0-eb78d352997d"
+          ],
+          "idle_watts": [
+            21.9786
+          ],
+          "interval_seconds": 0.1
+        },
+        "task_budget": {
+          "energy_joules": 10000,
+          "seconds": 120
+        },
+        "task_budget_exceeded": {
+          "energy": false,
+          "seconds": false
+        },
+        "routing": {
+          "estimated_worker_energy": 953.4915684192804,
+          "estimated_worker_seconds": 24.145477619861502,
+          "accounted_energy": 973.5391157021941,
+          "cost_basis": "measured_task",
+          "energy_budget": 10000,
+          "time_budget": 120,
+          "queue": 0.0,
+          "epsilon": 0.096059601,
+          "predictor_ready": true,
+          "buffer_samples": 4,
+          "collected_samples": 4,
+          "completed_tasks": 2
+        }
+      },
+      "evaluator_image": "progrouter-coding-evaluator"
+    },
+    {
+      "task_id": "HumanEval/68",
+      "benchmark": "humaneval_plus",
+      "model_calls": {
+        "progrouter-coder:1.5b": 3
+      },
+      "task_hash": "9c7ee8d10b459017ce9dc96e0b4998d4e78bce7df47cfd3df20670950591b89f",
+      "reference_hash": "34ba5d1cac142be5cd12f2e07e01e15faa2814ff70f1ec700af64c4bafe3588e",
+      "artifact_hash": "08791307de4ca017f6150ad4d1b3a998f4499a93d69c9369fa2a60174980dd7d",
+      "evaluation": {
+        "status": "evaluated",
+        "passed": false,
+        "metric": "evalplus_base_and_plus",
+        "base_status": "fail",
+        "plus_status": "fail"
+      },
+      "final_correctness": false,
+      "workflow_status": "coordinator_finished",
+      "workflow_metrics": {
+        "llm_calls": 7,
+        "worker_steps": 3,
+        "elapsed_seconds": 29.4709012019448,
+        "token_usage": {
+          "prompt_tokens": 8181,
+          "completion_tokens": 763,
+          "total_tokens": 8944
+        },
+        "final_correctness": null,
+        "energy_joules": 1009.526436311742,
+        "energy_measurement": {
+          "status": "measured",
+          "energy_joules": 1009.526436311742,
+          "gross_joules": 1657.248174284743,
+          "partial_incremental_joules": 1009.526436311742,
+          "samples": 315,
+          "error": null,
+          "devices": [
+            "GPU-4ac92c77-88d9-6d30-7cc0-eb78d352997d"
+          ],
+          "idle_watts": [
+            21.9786
+          ],
+          "interval_seconds": 0.1
+        },
+        "task_budget": {
+          "energy_joules": 10000,
+          "seconds": 120
+        },
+        "task_budget_exceeded": {
+          "energy": false,
+          "seconds": false
+        },
+        "routing": {
+          "estimated_worker_energy": 420.2571565984134,
+          "estimated_worker_seconds": 20.47136571817162,
+          "accounted_energy": 1009.526436311742,
+          "cost_basis": "measured_task",
+          "energy_budget": 10000,
+          "time_budget": 120,
+          "queue": 0.0,
+          "epsilon": 0.096059601,
+          "predictor_ready": true,
+          "buffer_samples": 4,
+          "collected_samples": 4,
+          "completed_tasks": 3
+        }
+      },
+      "evaluator_image": "progrouter-coding-evaluator"
+    },
+    {
+      "task_id": "HumanEval/94",
+      "benchmark": "humaneval_plus",
+      "model_calls": {
+        "progrouter-coder:1.5b": 4
+      },
+      "task_hash": "533fa1f399373475518dde5834c010fb56c75cf4ad12cd03f0be7bb9875c38a9",
+      "reference_hash": "80ff5262da7cd5ffd39fa5832f886fb93b9dbe13214a254ca2e59d84077da6c9",
+      "artifact_hash": "48d676a2ae0fbd8f9cc7ccebb3a464e960e7976f7bade15cd805621ec1f8d1a0",
+      "evaluation": {
+        "status": "evaluated",
+        "passed": true,
+        "metric": "evalplus_base_and_plus",
+        "base_status": "pass",
+        "plus_status": "pass"
+      },
+      "final_correctness": true,
+      "workflow_status": "coordinator_finished",
+      "workflow_metrics": {
+        "llm_calls": 9,
+        "worker_steps": 4,
+        "elapsed_seconds": 36.44536080909893,
+        "token_usage": {
+          "prompt_tokens": 10598,
+          "completion_tokens": 758,
+          "total_tokens": 11356
+        },
+        "final_correctness": null,
+        "energy_joules": 1012.4255608431637,
+        "energy_measurement": {
+          "status": "measured",
+          "energy_joules": 1012.4255608431637,
+          "gross_joules": 1813.4367442695614,
+          "partial_incremental_joules": 1012.4255608431637,
+          "samples": 391,
+          "error": null,
+          "devices": [
+            "GPU-4ac92c77-88d9-6d30-7cc0-eb78d352997d"
+          ],
+          "idle_watts": [
+            21.9786
+          ],
+          "interval_seconds": 0.1
+        },
+        "task_budget": {
+          "energy_joules": 10000,
+          "seconds": 120
+        },
+        "task_budget_exceeded": {
+          "energy": false,
+          "seconds": false
+        },
+        "routing": {
+          "estimated_worker_energy": 560.9405601261653,
+          "estimated_worker_seconds": 27.29515429089549,
+          "accounted_energy": 1012.4255608431637,
+          "cost_basis": "measured_task",
+          "energy_budget": 10000,
+          "time_budget": 120,
+          "queue": 0.0,
+          "epsilon": 0.096059601,
+          "predictor_ready": true,
+          "buffer_samples": 4,
+          "collected_samples": 4,
+          "completed_tasks": 4
+        }
+      },
+      "evaluator_image": "progrouter-coding-evaluator"
+    },
+    {
+      "task_id": "HumanEval/54",
+      "benchmark": "humaneval_plus",
+      "model_calls": {
+        "progrouter-coder:1.5b": 7,
+        "progrouter-coder:3b": 1
+      },
+      "task_hash": "c5c0177f8c16cb61799791310a8018f82d6c84441634af9d39cfe6b51ec52ce1",
+      "reference_hash": "e9e9ccb3b9719f8bcd0cc053ca2c1bd626c74e65430f0477f1f4b58b8a6eb3da",
+      "artifact_hash": "63dd8fef60b1279be5c7bd196351ebc10dda66d12a653a51d4b25926e06db6ce",
+      "evaluation": {
+        "status": "evaluated",
+        "passed": false,
+        "metric": "evalplus_base_and_plus",
+        "base_status": "fail",
+        "plus_status": "fail"
+      },
+      "final_correctness": false,
+      "workflow_status": "stalled",
+      "workflow_metrics": {
+        "llm_calls": 17,
+        "worker_steps": 8,
+        "elapsed_seconds": 88.1353702628985,
+        "token_usage": {
+          "prompt_tokens": 33005,
+          "completion_tokens": 2771,
+          "total_tokens": 35776
+        },
+        "final_correctness": null,
+        "energy_joules": 3381.3888575198407,
+        "energy_measurement": {
+          "status": "measured",
+          "energy_joules": 3381.3888575198407,
+          "gross_joules": 5318.473295365682,
+          "partial_incremental_joules": 3381.3888575198407,
+          "samples": 933,
+          "error": null,
+          "devices": [
+            "GPU-4ac92c77-88d9-6d30-7cc0-eb78d352997d"
+          ],
+          "idle_watts": [
+            21.9786
+          ],
+          "interval_seconds": 0.1
+        },
+        "task_budget": {
+          "energy_joules": 10000,
+          "seconds": 120
+        },
+        "task_budget_exceeded": {
+          "energy": false,
+          "seconds": false
+        },
+        "routing": {
+          "estimated_worker_energy": 1736.205037249352,
+          "estimated_worker_seconds": 58.264420483480855,
+          "accounted_energy": 3381.3888575198407,
+          "cost_basis": "measured_task",
+          "energy_budget": 10000,
+          "time_budget": 120,
+          "queue": 1381.3888575198407,
+          "epsilon": 0.09509900499,
+          "predictor_ready": true,
+          "buffer_samples": 5,
+          "collected_samples": 5,
+          "completed_tasks": 5
+        }
+      },
+      "evaluator_image": "progrouter-coding-evaluator"
+    }
+  ]
+}

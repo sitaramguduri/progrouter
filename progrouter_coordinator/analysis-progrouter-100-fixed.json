@@ -1,0 +1,68 @@
+{
+  "reports-progrouter-100-fixed.json": {
+    "all": {
+      "tasks": 100,
+      "worker_model_distribution": {
+        "progrouter-coder:7b": 11,
+        "progrouter-coder:0.5b": 19,
+        "progrouter-coder:3b": 11,
+        "progrouter-coder:1.5b": 526
+      },
+      "evaluated": 100,
+      "unavailable_or_error": 0,
+      "pass_rate_evaluated": 0.38,
+      "pass_rate_all_tasks": 0.38,
+      "citation_precision_macro": null,
+      "measured_energy_tasks": 100,
+      "mean_measured_energy_joules": 1891.6174291134403,
+      "mean_seconds": 54.19229950550711,
+      "workflow_statuses": {
+        "coordinator_finished": 62,
+        "stalled": 31,
+        "coordinator_aborted": 7
+      }
+    },
+    "warm_up": {
+      "tasks": 2,
+      "worker_model_distribution": {
+        "progrouter-coder:7b": 2,
+        "progrouter-coder:0.5b": 1,
+        "progrouter-coder:3b": 1,
+        "progrouter-coder:1.5b": 2
+      },
+      "evaluated": 2,
+      "unavailable_or_error": 0,
+      "pass_rate_evaluated": 1.0,
+      "pass_rate_all_tasks": 1.0,
+      "citation_precision_macro": null,
+      "measured_energy_tasks": 2,
+      "mean_measured_energy_joules": 899.8514536613316,
+      "mean_seconds": 24.142381457379088,
+      "workflow_statuses": {
+        "coordinator_finished": 2
+      }
+    },
+    "steady_state": {
+      "tasks": 98,
+      "worker_model_distribution": {
+        "progrouter-coder:1.5b": 524,
+        "progrouter-coder:3b": 10,
+        "progrouter-coder:7b": 9,
+        "progrouter-coder:0.5b": 18
+      },
+      "evaluated": 98,
+      "unavailable_or_error": 0,
+      "pass_rate_evaluated": 0.3673469387755102,
+      "pass_rate_all_tasks": 0.3673469387755102,
+      "citation_precision_macro": null,
+      "measured_energy_tasks": 98,
+      "mean_measured_energy_joules": 1911.8575510614423,
+      "mean_seconds": 54.80556313914237,
+      "workflow_statuses": {
+        "coordinator_finished": 60,
+        "stalled": 31,
+        "coordinator_aborted": 7
+      }
+    }
+  }
+}

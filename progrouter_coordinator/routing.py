@@ -40,6 +40,8 @@ class ModelOption:
         if messages is None:
             messages = [{'role': 'system', 'content': WORKER_PROMPT},
                         {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}]
+        from prompt_budget import prepare_messages
+        messages, _ = prepare_messages(self.model, messages)
         count = input_tokens(self.model, messages)
         # One resident model: each worker follows the configured coordinator.
         if cold is None:

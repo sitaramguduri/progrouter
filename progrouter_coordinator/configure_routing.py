@@ -41,6 +41,8 @@ def build(base, calibration):
     result = dict(base)
     result.pop('workers')
     result.update(routing=routing, candidates=pools)
+    if 'predictor' in calibration:
+        result['predictor'] = copy.deepcopy(calibration['predictor'])
     if 'evaluation_protocol' in calibration:
         protocol = calibration['evaluation_protocol']
         if (not isinstance(protocol['min_samples'], int) or protocol['min_samples'] < 1 or

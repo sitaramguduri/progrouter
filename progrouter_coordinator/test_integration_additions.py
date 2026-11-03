@@ -23,7 +23,7 @@ class IntegrationTests(unittest.TestCase):
         import io
         from workflow import HTTPChatClient
         from output_schemas import schema
-        worker_schema = schema('worker:coder', {'coder': 'code'})
+        worker_schema = schema('worker:reviewer', {'coder': 'code'})
         response = {'choices': [{'message': {'content': '{"message":"ok","code":null,"run_tests":false}'},
                                   'finish_reason': 'stop'}]}
         with patch('urllib.request.urlopen', return_value=io.BytesIO(json.dumps(response).encode())) as opened:

@@ -134,7 +134,8 @@ def coding_observation(ledger: dict) -> Observation:
         elif feedback.get("status") in {"error", "timeout", "output_limit"}:
             failures = (feedback["status"],)
     history = ledger.get("history", [])
-    worker_failed = bool(history and history[-1].get('worker_error'))
+    worker_failed = bool(history and history[-1].get('worker_error')) or (
+        ledger.get('code_validation', {}).get('status') == 'invalid' and not ledger.get('current_code'))
     if worker_failed:
         failures = tuple(failures) + ('worker_execution_failed',)
     if tests:
@@ -188,19 +189,22 @@ class ProgressPredictor:
     refits approximate online learning. This module does not implement routing.
     """
     def __init__(self, encoder: Encoder, *, min_samples=12, update_every=4,
-                 max_samples=2000, random_state=0, n_estimators=64):
+                 max_samples=2000, random_state=0, n_estimators=64, min_candidate_samples=0):
         if min_samples < 4 or update_every < 1 or max_samples < min_samples:
             raise ValueError("Invalid training buffer settings")
         self.encoder = encoder
         self.min_samples, self.update_every, self.max_samples = min_samples, update_every, max_samples
         self.random_state, self.n_estimators = random_state, n_estimators
+        if min_candidate_samples < 0:
+            raise ValueError('min_candidate_samples must be nonnegative')
+        self.min_candidate_samples = min_candidate_samples
         self.samples = []
         self.seen = 0
         self.structured = self.semantic = self.meta = None
 
     @property
     def feature_signature(self):
-        return {'version': 2, 'encoder': getattr(self.encoder, 'identity',
+        return {'version': 3, 'encoder': getattr(self.encoder, 'identity',
             type(self.encoder).__module__+'.'+type(self.encoder).__qualname__)}
 
     def _features(self, ledger, score, candidate):
@@ -209,6 +213,10 @@ class ProgressPredictor:
                     "trend": score.trend, "quality": score.quality,
                     "steps": len(history), "role=" + candidate.role: 1,
                     "model=" + candidate.model: 1, "regime=" + score.regime: 1}
+        latest = history[-1] if history else {}
+        features['last_code_invalid'] = int(latest.get('code_validation', {}).get('status') == 'invalid')
+        from workflow import stagnant_steps
+        features['stagnant_steps'] = stagnant_steps(ledger)
         for step in history:
             key = "calls=" + str(step.get("model", "unknown"))
             features[key] = features.get(key, 0) + 1
@@ -227,13 +235,17 @@ class ProgressPredictor:
         return features, embedding
 
     def predict(self, ledger, score, candidate):
-        if self.meta is None:
-            return {"ready": False, "structured": None, "semantic": None, "gain": None}
+        support = sum(bool(record.get('model='+candidate.model) and record.get('role='+candidate.role))
+                      for record, _, _ in self.samples)
+        if self.meta is None or support < self.min_candidate_samples:
+            return {"ready": False, "structured": None, "semantic": None, "gain": None,
+                    'candidate_samples': support}
         features, embedding = self._features(ledger, score, candidate)
         a = float(self.structured.predict(self.vectorizer.transform([features]))[0])
         b = float(self.semantic.predict([embedding])[0])
         gain = float(self.meta.predict([[a, b]])[0])
-        return {"ready": True, "structured": a, "semantic": b, "gain": max(-1., min(1., gain))}
+        return {"ready": True, "structured": a, "semantic": b, "gain": max(-1., min(1., gain)),
+                'candidate_samples': support}
 
     def observe(self, ledger, before: Score, candidate: Candidate, after: Score, *, exploration: bool):
         if not exploration:
