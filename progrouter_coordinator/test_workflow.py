@@ -189,7 +189,7 @@ class WorkflowTests(unittest.TestCase):
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
-            model = Model(f"http://127.0.0.1:{server.server_port}/v1", "contract-model")
+            model = Model(f"http://127.0.0.1:{server.server_port}/v1", "contract-model", json_mode=True)
             engine = CoordinatorWorkflow(HTTPChatClient(), model,
                 FixedModelSelector({"analyst": model}), {"analyst": "Analyze requirements"})
             with tempfile.TemporaryDirectory() as folder:
@@ -199,6 +199,8 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(len(requests), 3)
             self.assertTrue(all(path == "/v1/chat/completions" for path, _ in requests))
             self.assertEqual(requests[0][1]["max_tokens"], 2048)
+            self.assertTrue(all(body["response_format"] == {"type": "json_object"}
+                                for _, body in requests))
             final_input = json.loads(requests[2][1]["messages"][1]["content"])
             self.assertEqual(final_input["ledger"]["history"][0]["message"], "Approach is ready")
         finally:

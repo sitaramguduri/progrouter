@@ -3,7 +3,7 @@
 Profiles are supplied/calibrated by the operator, not measured energy. Budgets
 cover worker LLM attempts, including protocol retries; coordinator/tools excluded.
 """
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, replace
 import math
 import random
 
@@ -16,10 +16,38 @@ class ModelOption:
     model: Model
     energy: float
     seconds: float
+    profile: dict | None = None
 
     def __post_init__(self):
         if any(not math.isfinite(x) or x < 0 for x in (self.energy, self.seconds)):
             raise ValueError('Candidate costs must be finite and nonnegative')
+        if self.profile is not None:
+            for key in ('load_joules', 'prefill_joules_per_token', 'decode_joules_per_token',
+                        'load_seconds', 'prefill_seconds_per_token', 'decode_seconds_per_token'):
+                value = self.profile[key]
+                if not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                    raise ValueError('Invalid calibrated cost coefficient: '+key)
+
+    def estimate(self, ledger, subtask, *, messages=None, cold=None):
+        if self.profile is None:
+            return self
+        from workflow import WORKER_PROMPT, prompt_ledger
+        from token_budget import input_tokens
+        import json
+        role = self.profile['role']
+        payload = {'role': role, 'role_description': self.profile['role_description'],
+                   'subtask': subtask, 'ledger': prompt_ledger(ledger)}
+        if messages is None:
+            messages = [{'role': 'system', 'content': WORKER_PROMPT},
+                        {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}]
+        count = input_tokens(self.model, messages)
+        # One resident model: each worker follows the configured coordinator.
+        if cold is None:
+            cold = self.model.model != self.profile['coordinator_model']
+        p = self.profile
+        energy = cold*p['load_joules'] + count*p['prefill_joules_per_token'] + self.model.max_tokens*p['decode_joules_per_token']
+        seconds = cold*p['load_seconds'] + count*p['prefill_seconds_per_token'] + self.model.max_tokens*p['decode_seconds_per_token']
+        return replace(self, energy=max(self.energy, energy), seconds=max(self.seconds, seconds))
 
 
 @dataclass(frozen=True)
@@ -91,7 +119,10 @@ class ProgressRouter:
             raise ValueError('Progress routing requires a progress scorer')
         cfg = self.config
         rows = []
+        evaluated_options = []
         for option in self.pools[role]:
+            option = option.estimate(ledger, subtask)
+            evaluated_options.append(option)
             prediction = self.predictor.predict(ledger, score, Candidate(role, option.model.model, subtask))
             feasible = self._feasible(option)
             row = {'model': option.model.model, 'estimated_energy': option.energy,
@@ -116,30 +147,37 @@ class ProgressRouter:
         self.last_decision = {'role': role, 'subtask': subtask, 'candidates': rows,
                               'energy_used': self.energy_used, 'seconds_used': self.time_used,
                               'config': asdict(cfg), 'queue': self.queue, 'epsilon': self.epsilon,
+                              'collected_samples': self.collected_samples,
                               'selected': None, 'exploration': False}
         if not eligible:
             raise LimitReached('routing_budget: no feasible candidate')
         cold = any(not rows[i]['prediction']['ready'] for i in eligible)
         exploration = cold or self.random.random() < self.epsilon
         selected = self.random.choice(eligible) if exploration else max(eligible, key=lambda i: rows[i]['score'])
-        self.active_option = self.pools[role][selected]
+        self.active_option = evaluated_options[selected]
+        self.active_attempts = 0
         self.last_decision.update(selected=self.active_option.model.model, exploration=exploration,
                                   reason='cold_start' if cold else ('epsilon' if exploration else 'argmax'))
         return self.active_option.model
 
-    def charge_attempt(self, model):
+    def charge_attempt(self, model, *, messages=None):
         """Reserve calibrated estimates before every worker attempt, even failures."""
         if self.task_finalized:
             raise ValueError('Cannot charge a finalized task')
         option = self.active_option
         if option is None or option.model != model:
             raise ValueError('Worker model does not match selected candidate')
+        if option.profile is not None and messages is not None:
+            base = next(o for o in self.pools[self.last_decision['role']] if o.model == model)
+            cold = self.active_attempts == 0 and model.model != base.profile['coordinator_model']
+            option = base.estimate({}, '', messages=messages, cold=cold)
         if not self._feasible(option):
             raise LimitReached('routing_budget: worker attempt exceeds remaining budget')
         self.estimated_energy += option.energy
         self.estimated_seconds += option.seconds
         self.energy_used += option.energy
         self.time_used += option.seconds
+        self.active_attempts += 1
 
     def sync_measurement(self, energy, seconds):
         if self.config.cost_basis == 'measured_task':
@@ -169,7 +207,8 @@ class ProgressRouter:
                 'completed_tasks': self.completed_tasks}
 
     def _signature(self):
-        return {'measurement': getattr(self, 'measurement_signature', None), 'config': asdict(self.config),
+        return {'measurement': getattr(self, 'measurement_signature', None),
+                'features': getattr(self.predictor, 'feature_signature', None), 'config': asdict(self.config),
                 'pools': {role: [asdict(option) for option in options]
                           for role, options in self.pools.items()}}
 
@@ -224,4 +263,6 @@ class ProgressRouter:
                 'cost_basis': self.config.cost_basis,
                 'energy_budget': self.config.energy_budget, 'time_budget': self.config.time_budget,
                 'queue': self.queue, 'epsilon': self.epsilon,
+                'predictor_ready': getattr(self.predictor, 'meta', None) is not None,
+                'buffer_samples': len(getattr(self.predictor, 'samples', [])),
                 'collected_samples': self.collected_samples, 'completed_tasks': self.completed_tasks}

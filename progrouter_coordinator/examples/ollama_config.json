@@ -1,0 +1,48 @@
+{
+  "coordinator": {
+    "schema_mode": true,
+    "json_mode": true,
+    "base_url": "http://localhost:11434/v1",
+    "model": "progrouter-coder:7b",
+    "temperature": 0,
+    "max_tokens": 1024
+  },
+  "workers": {
+    "analyst": {
+      "schema_mode": true,
+      "json_mode": true,
+      "base_url": "http://localhost:11434/v1",
+      "model": "progrouter-coder:7b",
+      "temperature": 0,
+      "max_tokens": 1024
+    },
+    "coder": {
+      "schema_mode": true,
+      "json_mode": true,
+      "base_url": "http://localhost:11434/v1",
+      "model": "progrouter-coder:7b",
+      "temperature": 0,
+      "max_tokens": 1024
+    },
+    "reviewer": {
+      "schema_mode": true,
+      "json_mode": true,
+      "base_url": "http://localhost:11434/v1",
+      "model": "progrouter-coder:7b",
+      "temperature": 0,
+      "max_tokens": 1024
+    }
+  },
+  "limits": {
+    "max_worker_steps": 10,
+    "max_llm_calls": 30,
+    "max_seconds": 600,
+    "request_timeout": 120,
+    "max_prompt_chars": 10000,
+    "protocol_retries": 1
+  },
+  "visible_test_tool": {
+    "image": "python:3.12-slim",
+    "timeout": 10
+  }
+}

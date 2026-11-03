@@ -1,0 +1,360 @@
+{
+  "coordinator": {
+    "schema_mode": true,
+    "json_mode": true,
+    "base_url": "http://localhost:11434/v1",
+    "model": "progrouter-coder:7b",
+    "temperature": 0,
+    "max_tokens": 1024,
+    "context_tokens": 4096,
+    "tokenizer_name": "Qwen/Qwen2.5-Coder-7B-Instruct"
+  },
+  "limits": {
+    "max_worker_steps": 10,
+    "max_llm_calls": 30,
+    "max_seconds": 600,
+    "request_timeout": 120,
+    "max_prompt_chars": 10000,
+    "protocol_retries": 1
+  },
+  "visible_test_tool": {
+    "image": "python:3.12-slim",
+    "timeout": 10
+  },
+  "predictor": {
+    "min_samples": 4,
+    "update_every": 1
+  },
+  "routing": {
+    "energy_budget": 10000,
+    "time_budget": 120,
+    "average_energy": 2000,
+    "tradeoff": 1000,
+    "epsilon": 0.1,
+    "epsilon_decay": 0.99,
+    "epsilon_min": 0.01,
+    "seed": 0,
+    "cost_basis": "measured_task"
+  },
+  "candidates": {
+    "analyst": [
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:0.5b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+        },
+        "energy": 71.97848266420104,
+        "seconds": 2.990910990978591,
+        "profile": {
+          "load_joules": 21.038910136192637,
+          "prefill_joules_per_token": 0.027154204086679037,
+          "decode_joules_per_token": 0.1129792039115055,
+          "load_seconds": 2.2720083727534717,
+          "prefill_seconds_per_token": 7.635853159033661e-05,
+          "decode_seconds_per_token": 0.0026078325614412633,
+          "role": "analyst",
+          "role_description": "Analyze the problem, requirements, and algorithmic approach.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      },
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:1.5b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-1.5B-Instruct"
+        },
+        "energy": 83.142081533347,
+        "seconds": 3.9552345430711284,
+        "profile": {
+          "load_joules": 70.57299331791486,
+          "prefill_joules_per_token": 0.009242546313620273,
+          "decode_joules_per_token": 0.05939614371547724,
+          "load_seconds": 2.8318943797994365,
+          "prefill_seconds_per_token": 0.0,
+          "decode_seconds_per_token": 0.0038983341727777693,
+          "role": "analyst",
+          "role_description": "Analyze the problem, requirements, and algorithmic approach.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      },
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:3b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-3B-Instruct"
+        },
+        "energy": 187.63525812465153,
+        "seconds": 4.729757603025064,
+        "profile": {
+          "load_joules": 50.32617167923473,
+          "prefill_joules_per_token": 0.08167698893490287,
+          "decode_joules_per_token": 0.5552417723030397,
+          "load_seconds": 2.9094047519606256,
+          "prefill_seconds_per_token": 0.0,
+          "decode_seconds_per_token": 0.007410640353958139,
+          "role": "analyst",
+          "role_description": "Analyze the problem, requirements, and algorithmic approach.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      },
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:7b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-7B-Instruct"
+        },
+        "energy": 420.60950810060524,
+        "seconds": 7.03475036798045,
+        "profile": {
+          "load_joules": 31.39269496567214,
+          "prefill_joules_per_token": 0.03443319737752178,
+          "decode_joules_per_token": 1.4689200758173957,
+          "load_seconds": 3.665237818406029,
+          "prefill_seconds_per_token": 0.0,
+          "decode_seconds_per_token": 0.01336364071613748,
+          "role": "analyst",
+          "role_description": "Analyze the problem, requirements, and algorithmic approach.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      }
+    ],
+    "coder": [
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:0.5b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+        },
+        "energy": 71.97848266420104,
+        "seconds": 2.990910990978591,
+        "profile": {
+          "load_joules": 21.038910136192637,
+          "prefill_joules_per_token": 0.027154204086679037,
+          "decode_joules_per_token": 0.1129792039115055,
+          "load_seconds": 2.2720083727534717,
+          "prefill_seconds_per_token": 7.635853159033661e-05,
+          "decode_seconds_per_token": 0.0026078325614412633,
+          "role": "coder",
+          "role_description": "Implement or repair the full Python solution.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      },
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:1.5b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-1.5B-Instruct"
+        },
+        "energy": 83.142081533347,
+        "seconds": 3.9552345430711284,
+        "profile": {
+          "load_joules": 70.57299331791486,
+          "prefill_joules_per_token": 0.009242546313620273,
+          "decode_joules_per_token": 0.05939614371547724,
+          "load_seconds": 2.8318943797994365,
+          "prefill_seconds_per_token": 0.0,
+          "decode_seconds_per_token": 0.0038983341727777693,
+          "role": "coder",
+          "role_description": "Implement or repair the full Python solution.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      },
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:3b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-3B-Instruct"
+        },
+        "energy": 187.63525812465153,
+        "seconds": 4.729757603025064,
+        "profile": {
+          "load_joules": 50.32617167923473,
+          "prefill_joules_per_token": 0.08167698893490287,
+          "decode_joules_per_token": 0.5552417723030397,
+          "load_seconds": 2.9094047519606256,
+          "prefill_seconds_per_token": 0.0,
+          "decode_seconds_per_token": 0.007410640353958139,
+          "role": "coder",
+          "role_description": "Implement or repair the full Python solution.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      },
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:7b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-7B-Instruct"
+        },
+        "energy": 420.60950810060524,
+        "seconds": 7.03475036798045,
+        "profile": {
+          "load_joules": 31.39269496567214,
+          "prefill_joules_per_token": 0.03443319737752178,
+          "decode_joules_per_token": 1.4689200758173957,
+          "load_seconds": 3.665237818406029,
+          "prefill_seconds_per_token": 0.0,
+          "decode_seconds_per_token": 0.01336364071613748,
+          "role": "coder",
+          "role_description": "Implement or repair the full Python solution.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      }
+    ],
+    "reviewer": [
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:0.5b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+        },
+        "energy": 71.97848266420104,
+        "seconds": 2.990910990978591,
+        "profile": {
+          "load_joules": 21.038910136192637,
+          "prefill_joules_per_token": 0.027154204086679037,
+          "decode_joules_per_token": 0.1129792039115055,
+          "load_seconds": 2.2720083727534717,
+          "prefill_seconds_per_token": 7.635853159033661e-05,
+          "decode_seconds_per_token": 0.0026078325614412633,
+          "role": "reviewer",
+          "role_description": "Review the current solution, identify errors, and request visible checks.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      },
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:1.5b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-1.5B-Instruct"
+        },
+        "energy": 83.142081533347,
+        "seconds": 3.9552345430711284,
+        "profile": {
+          "load_joules": 70.57299331791486,
+          "prefill_joules_per_token": 0.009242546313620273,
+          "decode_joules_per_token": 0.05939614371547724,
+          "load_seconds": 2.8318943797994365,
+          "prefill_seconds_per_token": 0.0,
+          "decode_seconds_per_token": 0.0038983341727777693,
+          "role": "reviewer",
+          "role_description": "Review the current solution, identify errors, and request visible checks.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      },
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:3b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-3B-Instruct"
+        },
+        "energy": 187.63525812465153,
+        "seconds": 4.729757603025064,
+        "profile": {
+          "load_joules": 50.32617167923473,
+          "prefill_joules_per_token": 0.08167698893490287,
+          "decode_joules_per_token": 0.5552417723030397,
+          "load_seconds": 2.9094047519606256,
+          "prefill_seconds_per_token": 0.0,
+          "decode_seconds_per_token": 0.007410640353958139,
+          "role": "reviewer",
+          "role_description": "Review the current solution, identify errors, and request visible checks.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      },
+      {
+        "model": {
+          "schema_mode": true,
+          "json_mode": true,
+          "base_url": "http://localhost:11434/v1",
+          "model": "progrouter-coder:7b",
+          "temperature": 0,
+          "max_tokens": 1024,
+          "context_tokens": 4096,
+          "tokenizer_name": "Qwen/Qwen2.5-Coder-7B-Instruct"
+        },
+        "energy": 420.60950810060524,
+        "seconds": 7.03475036798045,
+        "profile": {
+          "load_joules": 31.39269496567214,
+          "prefill_joules_per_token": 0.03443319737752178,
+          "decode_joules_per_token": 1.4689200758173957,
+          "load_seconds": 3.665237818406029,
+          "prefill_seconds_per_token": 0.0,
+          "decode_seconds_per_token": 0.01336364071613748,
+          "role": "reviewer",
+          "role_description": "Review the current solution, identify errors, and request visible checks.",
+          "coordinator_model": "progrouter-coder:7b"
+        }
+      }
+    ]
+  },
+  "evaluation_protocol": {
+    "min_samples": 4,
+    "max_epsilon": 0.1
+  },
+  "energy_measurement": {
+    "devices": [
+      0
+    ],
+    "idle_watts": [
+      21.9786
+    ],
+    "interval": 0.1
+  }
+}

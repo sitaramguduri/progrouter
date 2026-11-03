@@ -8,6 +8,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Protocol
 import math
+import ast
 
 
 class Encoder(Protocol):
@@ -16,9 +17,15 @@ class Encoder(Protocol):
 
 class SentenceEncoder:
     """Lazy optional MiniLM backend. Loading may download model weights."""
-    def __init__(self, model_name="sentence-transformers/all-MiniLM-L6-v2", *, local_files_only=True):
+    def __init__(self, model_name="sentence-transformers/all-MiniLM-L6-v2", *, local_files_only=True, device="cpu"):
         from sentence_transformers import SentenceTransformer
-        self.model = SentenceTransformer(model_name, local_files_only=local_files_only)
+        self.model_name = model_name
+        self.model = SentenceTransformer(model_name, local_files_only=local_files_only, device=device)
+
+    @property
+    def identity(self):
+        return {'model_name': self.model_name, 'max_seq_length': self.model.max_seq_length,
+                'normalize_embeddings': True}
 
     def encode(self, sentences):
         return self.model.encode(sentences, normalize_embeddings=True).tolist()
@@ -127,10 +134,44 @@ def coding_observation(ledger: dict) -> Observation:
         elif feedback.get("status") in {"error", "timeout", "output_limit"}:
             failures = (feedback["status"],)
     history = ledger.get("history", [])
+    worker_failed = bool(history and history[-1].get('worker_error'))
+    if worker_failed:
+        failures = tuple(failures) + ('worker_execution_failed',)
+    if tests:
+        # Keep a fixed requirement universe before and after code creation.
+        # Some legacy ledgers have code only in history.
+        source = ledger.get('current_code') or code or ''
+        requirements['code_present'] = bool(source)
+        try:
+            parsed = ast.parse(source)
+            requirements['syntax_valid'] = bool(source)
+            requirements['function_defined'] = any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                                                    for n in parsed.body)
+        except SyntaxError:
+            requirements['syntax_valid'] = False
+            requirements['function_defined'] = False
+            failures = tuple(failures) + ('syntax_error',)
+    if not tests:
+        # Dense, observable milestones for tasks with no executable public examples.
+        # The final false requirement prevents syntax alone implying completion.
+        source = ledger.get("current_code") or ""
+        syntax = False
+        interface = False
+        if source:
+            try:
+                parsed = ast.parse(source)
+                syntax = True
+                interface = any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                                for n in parsed.body)
+            except SyntaxError:
+                failures = tuple(failures) + ("syntax_error",)
+        requirements = {"code_present": bool(source), "syntax_valid": syntax,
+                        "function_defined": interface, "public_behavior_verified": False}
     summary = str(ledger.get("state_summary") or ledger["task"]["problem"]) + "\nPlan: " + str(ledger.get("plan", []))
     summary += "\nLatest worker: " + (str(history[-1].get("message", "")) if history else "none")
     summary += "\nCode: " + str(ledger.get("current_code") or "none")
-    return Observation(summary, requirements, True, failures)
+    valid = 'syntax_error' not in failures and not (worker_failed and not ledger.get('current_code'))
+    return Observation(summary, requirements, valid, failures)
 
 
 @dataclass(frozen=True)
@@ -157,6 +198,11 @@ class ProgressPredictor:
         self.seen = 0
         self.structured = self.semantic = self.meta = None
 
+    @property
+    def feature_signature(self):
+        return {'version': 2, 'encoder': getattr(self.encoder, 'identity',
+            type(self.encoder).__module__+'.'+type(self.encoder).__qualname__)}
+
     def _features(self, ledger, score, candidate):
         history = ledger.get("history", [])
         features = {"progress": score.value, "completion": score.completion,
@@ -166,8 +212,15 @@ class ProgressPredictor:
         for step in history:
             key = "calls=" + str(step.get("model", "unknown"))
             features[key] = features.get(key, 0) + 1
-        text = coding_observation(ledger).summary + "\nRole: " + candidate.role
-        text += "\nSubtask: " + candidate.subtask + "\nCandidate model: " + candidate.model
+        # MiniLM truncates long inputs. Preserve the routing decision at the front,
+        # rather than appending it after potentially thousands of code tokens.
+        text = "Candidate model: " + candidate.model + "\nRole: " + candidate.role
+        text += "\nSubtask: " + candidate.subtask[:200]
+        text += f"\nProgress: {score.regime}, g={score.value:.3f}, completion={score.completion:.3f}"
+        latest = str(history[-1].get('message', '')) if history else 'initial'
+        text += "\nLatest state: " + str(ledger.get('state_summary') or latest)[:600]
+        text += "\nCurrent code: " + str(ledger.get('current_code') or 'none')[:600]
+        text += "\nTask: " + ledger['task']['problem'][:400]
         embedding = list(map(float, self.encoder.encode([text])[0]))
         if not embedding or not all(math.isfinite(x) for x in embedding):
             raise ValueError("Encoder must return finite nonempty embeddings")
@@ -200,16 +253,18 @@ class ProgressPredictor:
         # The encoder can own a GPU model; caller supplies it again when loading.
         state = dict(self.__dict__)
         state.pop("encoder")
-        joblib.dump({"version": 1, "state": state}, path)
+        joblib.dump({"version": 2, "features": self.feature_signature, "state": state}, path)
 
     @classmethod
     def load(cls, path, encoder):
         """Load only files you trust: joblib/pickle can execute arbitrary code."""
         import joblib
         data = joblib.load(path)
-        if data["version"] != 1:
+        if data["version"] != 2:
             raise ValueError("Unsupported predictor checkpoint version")
         predictor = cls(encoder)
+        if data.get('features') != predictor.feature_signature:
+            raise ValueError('Predictor encoder/feature configuration differs')
         predictor.__dict__.update(data["state"])
         predictor.encoder = encoder
         return predictor

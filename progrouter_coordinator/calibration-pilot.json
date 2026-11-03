@@ -1,0 +1,423 @@
+
+{
+  "profiles": {
+    "progrouter-coder:0.5b": {
+      "energy": 71.97848266420104,
+      "seconds": 2.990910990978591,
+      "coefficients": {
+        "load_joules": 21.038910136192637,
+        "prefill_joules_per_token": 0.027154204086679037,
+        "decode_joules_per_token": 0.1129792039115055,
+        "load_seconds": 2.2720083727534717,
+        "prefill_seconds_per_token": 7.635853159033661e-05,
+        "decode_seconds_per_token": 0.0026078325614412633
+      },
+      "fit_diagnostics": {
+        "energy_mae": 8.073607121035323,
+        "latency_mae": 0.02873056546613753,
+        "sample_count": 8,
+        "validation": "in-sample only"
+      }
+    },
+    "progrouter-coder:1.5b": {
+      "energy": 83.142081533347,
+      "seconds": 3.9552345430711284,
+      "coefficients": {
+        "load_joules": 70.57299331791486,
+        "prefill_joules_per_token": 0.009242546313620273,
+        "decode_joules_per_token": 0.05939614371547724,
+        "load_seconds": 2.8318943797994365,
+        "prefill_seconds_per_token": 0.0,
+        "decode_seconds_per_token": 0.0038983341727777693
+      },
+      "fit_diagnostics": {
+        "energy_mae": 4.70617070933044,
+        "latency_mae": 0.24251353863016073,
+        "sample_count": 8,
+        "validation": "in-sample only"
+      }
+    },
+    "progrouter-coder:3b": {
+      "energy": 187.63525812465153,
+      "seconds": 4.729757603025064,
+      "coefficients": {
+        "load_joules": 50.32617167923473,
+        "prefill_joules_per_token": 0.08167698893490287,
+        "decode_joules_per_token": 0.5552417723030397,
+        "load_seconds": 2.9094047519606256,
+        "prefill_seconds_per_token": 0.0,
+        "decode_seconds_per_token": 0.007410640353958139
+      },
+      "fit_diagnostics": {
+        "energy_mae": 27.424047185221944,
+        "latency_mae": 0.19202875566790495,
+        "sample_count": 8,
+        "validation": "in-sample only"
+      }
+    },
+    "progrouter-coder:7b": {
+      "energy": 420.60950810060524,
+      "seconds": 7.03475036798045,
+      "coefficients": {
+        "load_joules": 31.39269496567214,
+        "prefill_joules_per_token": 0.03443319737752178,
+        "decode_joules_per_token": 1.4689200758173957,
+        "load_seconds": 3.665237818406029,
+        "prefill_seconds_per_token": 0.0,
+        "decode_seconds_per_token": 0.01336364071613748
+      },
+      "fit_diagnostics": {
+        "energy_mae": 8.81416169152676,
+        "latency_mae": 0.20555041588742715,
+        "sample_count": 8,
+        "validation": "in-sample only"
+      }
+    }
+  },
+  "samples": [
+    {
+      "model": "progrouter-coder:0.5b",
+      "cold": true,
+      "input_tokens": 45,
+      "output_tokens": 64,
+      "seconds": 2.3634820049628615,
+      "server_load_seconds": 2.132655544,
+      "server_prefill_seconds": 0.068502,
+      "energy": 9.165096940584794
+    },
+    {
+      "model": "progrouter-coder:0.5b",
+      "cold": false,
+      "input_tokens": 45,
+      "output_tokens": 33,
+      "seconds": 0.10429452895186841,
+      "server_load_seconds": 0.000930584,
+      "server_prefill_seconds": 0.013996,
+      "energy": 0.8052187274355675
+    },
+    {
+      "model": "progrouter-coder:0.5b",
+      "cold": true,
+      "input_tokens": 169,
+      "output_tokens": 64,
+      "seconds": 2.4608454919653013,
+      "server_load_seconds": 2.178659011,
+      "server_prefill_seconds": 0.103727,
+      "energy": 36.13570164653507
+    },
+    {
+      "model": "progrouter-coder:0.5b",
+      "cold": false,
+      "input_tokens": 169,
+      "output_tokens": 64,
+      "seconds": 0.17575944506097585,
+      "server_load_seconds": 0.002989012,
+      "server_prefill_seconds": 0.009162,
+      "energy": 1.768688020100841
+    },
+    {
+      "model": "progrouter-coder:0.5b",
+      "cold": true,
+      "input_tokens": 45,
+      "output_tokens": 256,
+      "seconds": 2.9842631859937683,
+      "server_load_seconds": 2.255663956,
+      "server_prefill_seconds": 0.080058,
+      "energy": 54.2807872690067
+    },
+    {
+      "model": "progrouter-coder:0.5b",
+      "cold": false,
+      "input_tokens": 45,
+      "output_tokens": 256,
+      "seconds": 0.6412501700688154,
+      "server_load_seconds": 0.001530568,
+      "server_prefill_seconds": 0.006397,
+      "energy": 26.749258429032775
+    },
+    {
+      "model": "progrouter-coder:0.5b",
+      "cold": true,
+      "input_tokens": 297,
+      "output_tokens": 256,
+      "seconds": 2.990910990978591,
+      "server_load_seconds": 2.289935417,
+      "server_prefill_seconds": 0.076801,
+      "energy": 71.97848266420104
+    },
+    {
+      "model": "progrouter-coder:0.5b",
+      "cold": false,
+      "input_tokens": 297,
+      "output_tokens": 256,
+      "seconds": 0.666804117965512,
+      "server_load_seconds": 0.001804925,
+      "server_prefill_seconds": 0.018054,
+      "energy": 30.64289336913811
+    },
+    {
+      "model": "progrouter-coder:1.5b",
+      "cold": true,
+      "input_tokens": 45,
+      "output_tokens": 64,
+      "seconds": 3.9552345430711284,
+      "server_load_seconds": 3.621566956,
+      "server_prefill_seconds": 0.05232,
+      "energy": 79.49000906491831
+    },
+    {
+      "model": "progrouter-coder:1.5b",
+      "cold": false,
+      "input_tokens": 45,
+      "output_tokens": 64,
+      "seconds": 0.2899816849967465,
+      "server_load_seconds": 0.000906552,
+      "server_prefill_seconds": 0.007877,
+      "energy": 4.850490910069761
+    },
+    {
+      "model": "progrouter-coder:1.5b",
+      "cold": true,
+      "input_tokens": 170,
+      "output_tokens": 29,
+      "seconds": 2.724801324075088,
+      "server_load_seconds": 2.531283477,
+      "server_prefill_seconds": 0.060885,
+      "energy": 67.42914517125857
+    },
+    {
+      "model": "progrouter-coder:1.5b",
+      "cold": false,
+      "input_tokens": 170,
+      "output_tokens": 27,
+      "seconds": 0.14913965400774032,
+      "server_load_seconds": 0.001596424,
+      "server_prefill_seconds": 0.016849,
+      "energy": 1.52808038515707
+    },
+    {
+      "model": "progrouter-coder:1.5b",
+      "cold": true,
+      "input_tokens": 46,
+      "output_tokens": 256,
+      "seconds": 3.6572446359787136,
+      "server_load_seconds": 2.508642173,
+      "server_prefill_seconds": 0.051983,
+      "energy": 83.142081533347
+    },
+    {
+      "model": "progrouter-coder:1.5b",
+      "cold": false,
+      "input_tokens": 46,
+      "output_tokens": 45,
+      "seconds": 0.22468300093896687,
+      "server_load_seconds": 0.001873705,
+      "server_prefill_seconds": 0.011888,
+      "energy": 16.82943273529038
+    },
+    {
+      "model": "progrouter-coder:1.5b",
+      "cold": true,
+      "input_tokens": 298,
+      "output_tokens": 27,
+      "seconds": 2.4560706650372595,
+      "server_load_seconds": 2.261871922,
+      "server_prefill_seconds": 0.068788,
+      "energy": 79.73027092846878
+    },
+    {
+      "model": "progrouter-coder:1.5b",
+      "cold": false,
+      "input_tokens": 298,
+      "output_tokens": 28,
+      "seconds": 0.16793722100555897,
+      "server_load_seconds": 0.001821759,
+      "server_prefill_seconds": 0.025254,
+      "energy": 1.777627572912956
+    },
+    {
+      "model": "progrouter-coder:3b",
+      "cold": true,
+      "input_tokens": 46,
+      "output_tokens": 64,
+      "seconds": 4.068877974059433,
+      "server_load_seconds": 3.572723614,
+      "server_prefill_seconds": 0.056647,
+      "energy": 65.81044435298548
+    },
+    {
+      "model": "progrouter-coder:3b",
+      "cold": false,
+      "input_tokens": 46,
+      "output_tokens": 64,
+      "seconds": 0.4624734859680757,
+      "server_load_seconds": 0.001604122,
+      "server_prefill_seconds": 0.0127,
+      "energy": 22.258730239018796
+    },
+    {
+      "model": "progrouter-coder:3b",
+      "cold": true,
+      "input_tokens": 170,
+      "output_tokens": 14,
+      "seconds": 2.6510030860081315,
+      "server_load_seconds": 2.477664206,
+      "server_prefill_seconds": 0.073467,
+      "energy": 95.68843472259766
+    },
+    {
+      "model": "progrouter-coder:3b",
+      "cold": false,
+      "input_tokens": 170,
+      "output_tokens": 14,
+      "seconds": 0.1392622230341658,
+      "server_load_seconds": 0.001566356,
+      "server_prefill_seconds": 0.02714,
+      "energy": 1.8028158041687221
+    },
+    {
+      "model": "progrouter-coder:3b",
+      "cold": true,
+      "input_tokens": 46,
+      "output_tokens": 256,
+      "seconds": 4.729757603025064,
+      "server_load_seconds": 2.897873795,
+      "server_prefill_seconds": 0.071387,
+      "energy": 164.34759406952827
+    },
+    {
+      "model": "progrouter-coder:3b",
+      "cold": false,
+      "input_tokens": 46,
+      "output_tokens": 256,
+      "seconds": 1.8338577679824084,
+      "server_load_seconds": 0.001326527,
+      "server_prefill_seconds": 0.013149,
+      "energy": 187.63525812465153
+    },
+    {
+      "model": "progrouter-coder:3b",
+      "cold": true,
+      "input_tokens": 298,
+      "output_tokens": 14,
+      "seconds": 2.7668831879273057,
+      "server_load_seconds": 2.576215092,
+      "server_prefill_seconds": 0.091213,
+      "energy": 114.42146413683095
+    },
+    {
+      "model": "progrouter-coder:3b",
+      "cold": false,
+      "input_tokens": 298,
+      "output_tokens": 14,
+      "seconds": 0.1590076140128076,
+      "server_load_seconds": 0.000840526,
+      "server_prefill_seconds": 0.043711,
+      "energy": 2.7184248734034595
+    },
+    {
+      "model": "progrouter-coder:7b",
+      "cold": true,
+      "input_tokens": 46,
+      "output_tokens": 64,
+      "seconds": 5.166008456959389,
+      "server_load_seconds": 4.232675647,
+      "server_prefill_seconds": 0.068349,
+      "energy": 103.73809232486407
+    },
+    {
+      "model": "progrouter-coder:7b",
+      "cold": false,
+      "input_tokens": 46,
+      "output_tokens": 64,
+      "seconds": 0.9008099039783701,
+      "server_load_seconds": 0.000896481,
+      "server_prefill_seconds": 0.019704,
+      "energy": 82.64331053941456
+    },
+    {
+      "model": "progrouter-coder:7b",
+      "cold": true,
+      "input_tokens": 170,
+      "output_tokens": 64,
+      "seconds": 4.210135466069914,
+      "server_load_seconds": 3.248492912,
+      "server_prefill_seconds": 0.100852,
+      "energy": 144.9229338054488
+    },
+    {
+      "model": "progrouter-coder:7b",
+      "cold": false,
+      "input_tokens": 170,
+      "output_tokens": 64,
+      "seconds": 0.9458245820133016,
+      "server_load_seconds": 0.001264144,
+      "server_prefill_seconds": 0.051489,
+      "energy": 90.380448088307
+    },
+    {
+      "model": "progrouter-coder:7b",
+      "cold": true,
+      "input_tokens": 46,
+      "output_tokens": 256,
+      "seconds": 7.03475036798045,
+      "server_load_seconds": 3.276965347,
+      "server_prefill_seconds": 0.071443,
+      "energy": 415.6916846863159
+    },
+    {
+      "model": "progrouter-coder:7b",
+      "cold": false,
+      "input_tokens": 46,
+      "output_tokens": 256,
+      "seconds": 3.5040966239757836,
+      "server_load_seconds": 0.001230866,
+      "server_prefill_seconds": 0.019161,
+      "energy": 376.6347995303546
+    },
+    {
+      "model": "progrouter-coder:7b",
+      "cold": true,
+      "input_tokens": 298,
+      "output_tokens": 256,
+      "seconds": 6.8027870409423485,
+      "server_load_seconds": 3.222869953,
+      "server_prefill_seconds": 0.153276,
+      "energy": 420.60950810060524
+    },
+    {
+      "model": "progrouter-coder:7b",
+      "cold": false,
+      "input_tokens": 298,
+      "output_tokens": 256,
+      "seconds": 3.5554070100188255,
+      "server_load_seconds": 0.001506307,
+      "server_prefill_seconds": 0.082938,
+      "energy": 385.71841650923
+    }
+  ],
+  "energy_measurement": {
+    "devices": [
+      0
+    ],
+    "idle_watts": [
+      21.9786
+    ],
+    "interval": 0.1
+  },
+  "evaluation_protocol": {
+    "min_samples": 4,
+    "max_epsilon": 0.1
+  },
+  "routing": {
+    "energy_budget": 10000,
+    "time_budget": 120,
+    "average_energy": 2000,
+    "tradeoff": 1000,
+    "epsilon": 0.1,
+    "epsilon_decay": 0.99,
+    "epsilon_min": 0.01,
+    "seed": 0,
+    "cost_basis": "measured_task"
+  }
+}

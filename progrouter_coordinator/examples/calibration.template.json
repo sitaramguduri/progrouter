@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "progrouter-coder:0.5b": {"energy": null, "seconds": null},
+    "progrouter-coder:1.5b": {"energy": null, "seconds": null},
+    "progrouter-coder:3b": {"energy": null, "seconds": null},
+    "progrouter-coder:7b": {"energy": null, "seconds": null}
+  },
+  "routing": {
+    "energy_budget": null,
+    "time_budget": null,
+    "average_energy": null,
+    "tradeoff": 1000,
+    "epsilon": 0.1,
+    "epsilon_decay": 0.99,
+    "epsilon_min": 0.01,
+    "seed": 0,
+    "cost_basis": "measured_task"
+  },
+  "energy_measurement": {"devices": [0], "idle_watts": [null], "interval": 0.1}
+}

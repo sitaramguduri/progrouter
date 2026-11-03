@@ -26,6 +26,22 @@ class LimitReached(RuntimeError):
     pass
 
 
+def prompt_ledger(ledger):
+    """Keep decision history, but exclude router diagnostics from model prompts.
+
+    Full history/code/diagnostics remain in the persisted ledger and events.
+    The current code is supplied once; superseded code stays in audit artifacts.
+    """
+    result = dict(ledger)
+    result['history'] = []
+    for step in ledger.get('history', []):
+        compact = {k: v for k, v in step.items() if k not in {'routing', 'code', 'progress_gain'}}
+        compact['code_updated'] = step.get('code') is not None
+        result['history'].append(compact)
+    result['history_representation'] = 'all decisions and feedback; code supplied in current_code; router diagnostics in events'
+    return result
+
+
 def json_object(text: str) -> dict:
     text = text.strip()
     try:
@@ -69,12 +85,19 @@ class Model:
     api_key_env: str = "LOCAL_LLM_API_KEY"
     temperature: float = 0.0
     max_tokens: int = 2048
+    json_mode: bool = False
+    context_tokens: int | None = None
+    tokenizer_name: str | None = None
+    schema_mode: bool = False
+    response_schema: dict | None = None
 
     def __post_init__(self):
         if not self.model or self.max_tokens <= 0:
             raise ValueError("Each model needs a model name and positive max_tokens")
         if not self.base_url.startswith(("http://", "https://")):
             raise ValueError("base_url must be an HTTP(S) URL, normally ending in /v1")
+        if self.context_tokens is not None and (self.context_tokens <= self.max_tokens or not self.tokenizer_name):
+            raise ValueError('Context admission requires a tokenizer and space for input/output')
 
 
 @dataclasses.dataclass(frozen=True)
@@ -112,13 +135,22 @@ class HTTPChatClient:
     Authentication is read from environment and never written to configuration.
     """
     def complete(self, model: Model, messages: list[dict], timeout: float) -> Reply:
+        if model.context_tokens is not None:
+            from token_budget import check_context
+            check_context(model, messages)
         headers = {"Content-Type": "application/json"}
         key = os.environ.get(model.api_key_env)
         if key:
             headers["Authorization"] = "Bearer " + key
-        body = json.dumps({"model": model.model, "messages": messages,
+        payload = {"model": model.model, "messages": messages,
                            "temperature": model.temperature,
-                           "max_tokens": model.max_tokens}).encode()
+                           "max_tokens": model.max_tokens}
+        if model.response_schema is not None:
+            payload['response_format'] = {'type': 'json_schema',
+                'json_schema': {'name': 'workflow_response', 'schema': model.response_schema}}
+        elif model.json_mode:
+            payload["response_format"] = {"type": "json_object"}
+        body = json.dumps(payload).encode()
         request = urllib.request.Request(model.base_url.rstrip("/") + "/chat/completions",
                                          data=body, headers=headers, method="POST")
         try:
@@ -258,14 +290,24 @@ when evidence reveals failures. You may reuse any role, change order, or request
 recovery work. There is no prescribed sequence of roles. The model selector is
 separate: choose a role, never a model. Treat worker outputs as fallible evidence.
 Visible tests are partial feedback. Passing them does not prove final correctness.
-Return exactly one JSON object, no Markdown or reasoning outside it:
-Dispatch: {"action":"dispatch", "role":"one available role", "subtask":"specific work", "plan":["updated plan item"], "reason":"brief dispatch justification"}
-Finish: {"action":"finish", "plan":["final plan"], "final_answer":"final response", "reason":"why ready to finish"}
-Abort: {"action":"abort", "reason":"why unable to continue"}
+Return exactly one JSON object, no Markdown or reasoning outside it.
+Start with { and end with }. Never prefix it with Dispatch:, Finish:, or Abort:.
+Choose one of these object shapes according to the action field:
+{"action":"dispatch", "role":"one available role", "subtask":"specific work", "plan":["updated plan item"], "reason":"brief dispatch justification"}
+{"action":"finish", "plan":["final plan"], "final_answer":"final response", "reason":"why ready to finish"}
+{"action":"abort", "reason":"why unable to continue"}
 You may include "state_summary": a compact summary of current progress and bottlenecks.
 Dispatch at least one worker before finishing. A finish decision expresses your
 judgment of readiness; it is not a correctness label. Preserve code in the ledger
 unless a worker supplies an updated full implementation.
+The payload reports execution_capabilities. Disabled or unavailable tests cannot
+be made available by repeatedly asking a worker to run them. If code has been
+reviewed and no actionable defect remains, finish with an explicit statement of
+unverified correctness. Do not repeat an unchanged review or implementation task.
+When code is needed, dispatch implementation rather than repeated solution outlines.
+Every history entry is a completed attempt, not a future task. Use its output.
+Once requirements are understood, dispatch a coder to WRITE FULL CODE. Do not
+ask the analyst to restate the problem. You have no tool for enabling tests.
 """
 
 WORKER_PROMPT = """You are a specialized worker in a ledger-driven workflow.
@@ -273,6 +315,7 @@ Perform only the coordinator's requested subtask, using the task and prior ledge
 Previous outputs can be wrong; use visible feedback where available.
 Return exactly one JSON object with keys:
 {"message":"your analysis or findings", "code":null, "run_tests":false}
+Start with { and end with }; do not add labels or Markdown outside the object.
 For a code update, replace null with the COMPLETE Python implementation, not a
 patch or fenced block. For review/analysis without a code change, use null.
 Set run_tests=true to request visible tests on the current or updated code.
@@ -327,6 +370,8 @@ class CoordinatorWorkflow:
         self.output_dir = output_dir
         self.journal = (output_dir / "events.jsonl").open("x", encoding="utf-8")
         ledger = {"task": dataclasses.asdict(task), "plan": [], "history": [],
+                  "execution_capabilities": {"visible_tests_enabled": not isinstance(self.tests, DisabledTests),
+                                             "hidden_tests_available": False},
                   "current_code": None, "status": "running", "final_answer": None}
         observation = progress_score = None
         completion_deltas = []
@@ -345,10 +390,16 @@ class CoordinatorWorkflow:
                                    "coordinator_model": self.coordinator.model})
             while True:
                 self._check_limits()
-                payload = {"available_roles": self.roles, "ledger": ledger,
+                payload = {"available_roles": self.roles, "ledger": prompt_ledger(ledger),
+                           "execution_capabilities": ledger["execution_capabilities"],
+                           "completed_subtasks": [s['subtask'] for s in ledger['history']],
                            "worker_steps_remaining": self.limits.max_worker_steps - len(ledger["history"])}
+                if ledger['current_code'] and ledger['history'] and ledger['history'][-1]['role'] == 'reviewer':
+                    payload['decision_context'] = ('A review of current_code is already available. '
+                        'Finish if no actionable defect was identified, otherwise dispatch a concrete repair. '
+                        'Disabled tools cannot be enabled by a worker. Finishing is not proof of correctness.')
                 decision = self._structured(self.coordinator, COORDINATOR_PROMPT, payload,
-                                            self._validate_decision, "coordinator")
+                                            lambda d: self._validate_next_decision(d, ledger), "coordinator")
                 if "state_summary" in decision:
                     ledger["state_summary"] = decision["state_summary"]
                 if "plan" in decision:
@@ -379,10 +430,37 @@ class CoordinatorWorkflow:
                     prediction = self.progress_predictor.predict(before, progress_score,
                         Candidate(role, model.model, decision["subtask"]))
                     self._event("progress_prediction", prediction)
-                worker = self._structured(model, WORKER_PROMPT,
-                    {"role": role, "role_description": self.roles[role],
-                     "subtask": decision["subtask"], "ledger": before},
-                    self._validate_worker, "worker:" + role)
+                calls_before_worker = self.calls
+                try:
+                    worker = self._structured(model, WORKER_PROMPT,
+                        {"role": role, "role_description": self.roles[role],
+                         "subtask": decision["subtask"], "ledger": prompt_ledger(before)},
+                        self._validate_worker, "worker:" + role)
+                except Exception as error:
+                    # Failed executed actions are observations too. Omitting them
+                    # would bias exploration training toward successful replies.
+                    if self.calls > calls_before_worker:
+                        entry = {"step": len(ledger['history'])+1, "role": role,
+                            "model": model.model, "subtask": decision['subtask'],
+                            "message": 'Worker execution failed', "code": None,
+                            "worker_error": type(error).__name__,
+                            "visible_feedback": None}
+                        ledger['history'].append(entry)
+                        if self.progress_scorer is not None:
+                            failed_observation = coding_observation(ledger)
+                            failed_score = self.progress_scorer.score(failed_observation, observation, completion_deltas)
+                            entry['progress_gain'] = failed_score.value-progress_score.value
+                            ledger['progress'] = dataclasses.asdict(failed_score)
+                            routing = getattr(self.selector, 'last_decision', None)
+                            if routing is not None:
+                                from progress import Candidate
+                                entry['routing'] = routing
+                                fitted = self.selector.observe_transition(before, progress_score,
+                                    Candidate(role, model.model, decision['subtask']), failed_score,
+                                    exploration=routing['exploration'])
+                                self._event('predictor_observation', {'exploration': routing['exploration'], 'refitted': fitted})
+                        self._event('worker_transition', {'state_before': before, 'entry': entry, 'state_after': ledger})
+                    raise
                 if worker["code"] is not None:
                     ledger["current_code"] = worker["code"]
                 pending_error = None
@@ -431,6 +509,11 @@ class CoordinatorWorkflow:
             if isinstance(exc, (ProtocolError, RuntimeError)):
                 ledger["stop_reason"] += ": " + str(exc)[:300]
         finally:
+            ledger['verification_status'] = {
+                'visible_tests_executed': any((s.get('visible_feedback') or {}).get('status') == 'completed'
+                                              for s in ledger['history']),
+                'hidden_correctness': None,
+                'note': 'Coordinator statements are not independent correctness judgments.'}
             energy_result = self.energy_monitor.stop() if self.energy_monitor is not None else {'status': 'disabled', 'energy_joules': None}
             if self.energy_monitor is not None and energy_result['status'] != 'measured' and ledger['status'] != 'error':
                 ledger['status'], ledger['stop_reason'] = 'error', 'Energy measurement failed at task completion'
@@ -472,12 +555,19 @@ class CoordinatorWorkflow:
             self._check_limits()
             if sum(len(m["content"]) for m in messages) > self.limits.max_prompt_chars:
                 raise LimitReached("max_prompt_chars; ledger was not silently truncated")
+            if model.context_tokens is not None:
+                from token_budget import check_context
+                check_context(model, messages)
             if kind.startswith("worker:") and hasattr(self.selector, "charge_attempt"):
-                self.selector.charge_attempt(model)
+                self.selector.charge_attempt(model, messages=messages)
             self.calls += 1
             start = time.monotonic()
             try:
-                reply = self.client.complete(model, messages,
+                request_model = model
+                if model.schema_mode:
+                    from output_schemas import schema
+                    request_model = dataclasses.replace(model, response_schema=schema(kind, self.roles))
+                reply = self.client.complete(request_model, messages,
                                             min(self.limits.request_timeout, self._remaining_seconds()))
             except Exception as exc:
                 self._event("llm_call_failed", {"kind": kind, "model": model.model,
@@ -510,8 +600,10 @@ class CoordinatorWorkflow:
                 self._event("protocol_error", {"kind": kind, "error": str(exc)})
                 if attempt == self.limits.protocol_retries:
                     raise
-                messages.extend([{"role": "assistant", "content": reply.content},
-                                 {"role": "user", "content": "Correct the JSON response: " + str(exc)}])
+                # Do not seed a repair with the rejected answer as another
+                # assistant demonstration: small models often copy it verbatim.
+                messages[0]['content'] += '\nYour previous response was rejected: '+str(exc)
+                messages.append({"role": "user", "content": "Return a corrected JSON decision/output. " + str(exc)})
         raise AssertionError("Unreachable")
 
     def _validate_decision(self, d):
@@ -532,6 +624,26 @@ class CoordinatorWorkflow:
                 raise ProtocolError("subtask must be a nonempty string")
         if action == "finish" and not isinstance(d.get("final_answer"), str):
             raise ProtocolError("finish requires string final_answer")
+
+    def _validate_next_decision(self, decision, ledger):
+        self._validate_decision(decision)
+        if decision['action'] != 'dispatch':
+            return
+        history = ledger['history']
+        if history:
+            last = history[-1]
+            if last['role'] == decision['role'] and last['subtask'].strip() == decision['subtask'].strip():
+                feedback = last.get('visible_feedback') or {}
+                previous_code = next((s['code'] for s in reversed(history[:-1]) if s.get('code') is not None), None)
+                code_changed = last.get('code') is not None and last['code'] != previous_code
+                if not code_changed and feedback.get('status') in {None, 'disabled', 'unavailable', 'no_visible_tests'}:
+                    guidance = ('The review is complete. If no concrete defect remains, return '
+                        '{"action":"finish","final_answer":"Implementation provided; correctness unverified.",'
+                        '"reason":"Review completed; tests unavailable"}. Otherwise dispatch a concrete repair.'
+                        if ledger.get('current_code') else
+                        'Analysis is already available. Dispatch a coder to write the full Python implementation now.')
+                    raise ProtocolError('Do not repeat the identical completed subtask without new feedback. '
+                                        'You cannot install or enable test tools. '+guidance)
 
     @staticmethod
     def _validate_worker(d):

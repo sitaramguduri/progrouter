@@ -12,6 +12,8 @@ import re
 from pathlib import Path
 import subprocess
 import sys
+import random
+from collections import Counter
 
 from workflow import Task
 from sandbox import DockerSandbox
@@ -44,6 +46,8 @@ def adapt(record, benchmark, index=0, visible_count=0, documents=None):
     tests = []
     if benchmark in {'humaneval', 'humaneval_plus', 'mbpp_plus'}:
         problem = record['prompt']+'\nReturn the complete Python implementation, including its function signature.'
+        from public_checks import prompt_checks
+        tests = prompt_checks(record['prompt'])
         if benchmark == 'humaneval':
             entry = record['entry_point']
             if not entry.isidentifier():
@@ -89,8 +93,15 @@ def adapt(record, benchmark, index=0, visible_count=0, documents=None):
     return public, private
 
 
-def prepare(source, benchmark, public_dir, private_path, *, split='dev', visible_count=0, documents_path=None):
+def prepare(source, benchmark, public_dir, private_path, *, split='dev', visible_count=0, documents_path=None,
+            seed=None, limit=None):
     rows = records_from(source, benchmark, split)
+    if seed is not None:
+        random.Random(seed).shuffle(rows)
+    if limit is not None:
+        if limit <= 0:
+            raise ValueError('limit must be positive')
+        rows = rows[:limit]
     if not rows:
         raise ValueError('Empty benchmark')
     documents = json.loads(documents_path.read_text()) if documents_path else {}
@@ -109,7 +120,9 @@ def prepare(source, benchmark, public_dir, private_path, *, split='dev', visible
     if private_path.exists() or (public_dir.exists() and any(public_dir.iterdir())):
         raise ValueError('Use fresh public and private output paths')
     public_dir.mkdir(parents=True, exist_ok=True)
-    manifest = {'version': 1, 'benchmark': benchmark, 'dataset_sha256': hashlib.sha256(source.read_bytes()).hexdigest(), 'tasks': []}
+    manifest = {'version': 1, 'benchmark': benchmark, 'seed': seed, 'limit': limit,
+                'public_check_protocol': 'prompt-doctests-v1',
+                'dataset_sha256': hashlib.sha256(source.read_bytes()).hexdigest(), 'tasks': []}
     private_records = []
     for i, (public, private) in enumerate(prepared):
         filename = f'{i:05d}.json'
@@ -143,7 +156,10 @@ def run_stream(public_dir, config, output_dir, checkpoint=None, enable_tests=Fal
     if output_dir.exists() and any(output_dir.iterdir()):
         raise ValueError('Use a fresh stream output directory')
     output_dir.mkdir(parents=True, exist_ok=True)
-    routed = json.loads(config.read_text()).get('routing') is not None
+    config_data = json.loads(config.read_text())
+    routed = config_data.get('routing') is not None
+    protocol = config_data.get('evaluation_protocol', {})
+    stabilized = False
     results = []
     for i, item in enumerate(manifest['tasks']):
         run_dir = output_dir/f'{i:05d}'
@@ -159,7 +175,16 @@ def run_stream(public_dir, config, output_dir, checkpoint=None, enable_tests=Fal
         if routed and not (run_dir/'router.joblib').exists():
             raise RuntimeError('Routing checkpoint missing; stop stream to preserve queue/learning continuity')
         checkpoint = run_dir/'router.joblib' if (run_dir/'router.joblib').exists() else None
-        results.append({'task_id': item['task_id'], 'directory': f'{i:05d}', 'exit_code': process.returncode})
+        phase = 'steady_state' if stabilized else 'warm_up'
+        ledger = json.loads((run_dir/'ledger.json').read_text())
+        metrics = ledger.get('metrics', {}).get('routing', {})
+        if protocol and metrics.get('predictor_ready') and (
+                metrics.get('buffer_samples', 0) >= protocol['min_samples'] and
+                metrics.get('epsilon', 1) <= protocol['max_epsilon']):
+            stabilized = True
+        results.append({'task_id': item['task_id'], 'directory': f'{i:05d}', 'exit_code': process.returncode,
+                        'phase': phase if protocol else 'unspecified',
+                        'stabilized_after_task': stabilized})
         (output_dir/'stream.json').write_text(json.dumps({'tasks': results}, indent=2)+'\n')
     return results
 
@@ -210,17 +235,22 @@ def evaluate_run(run_dir, reference, sandbox, *, nli_model=None, entailment_labe
             if not valid:
                 result = {'status': 'error', 'passed': None, 'metric': metric, 'reason': 'invalid_evaluator_result'}
     return {'task_id': reference['task_id'], 'benchmark': reference['benchmark'],
+            'model_calls': dict(Counter(step['model'] for step in ledger.get('history', []))),
             'task_hash': reference['task_hash'], 'reference_hash': digest(reference), 'artifact_hash': digest({'code': ledger.get('current_code'), 'answer': ledger.get('final_answer')}),
             'evaluation': result, 'final_correctness': result.get('passed') if result.get('status') == 'evaluated' else None, 'workflow_status': ledger['status'], 'workflow_metrics': ledger['metrics'],
             'evaluator_image': sandbox.image}
 
 
 def summarize(reports):
+    distribution = Counter()
+    for report in reports:
+        distribution.update(report.get('model_calls', {}))
     evaluated = [r['evaluation'] for r in reports if r['evaluation']['status'] == 'evaluated']
     boolean = [r for r in evaluated if type(r.get('passed')) is bool]
     citations = [r for r in evaluated if 'citation_precision' in r]
     energies = [r['workflow_metrics'].get('energy_joules') for r in reports]
-    return {'tasks': len(reports), 'evaluated': len(evaluated), 'unavailable_or_error': len(reports)-len(evaluated),
+    return {'tasks': len(reports), 'worker_model_distribution': dict(distribution),
+            'evaluated': len(evaluated), 'unavailable_or_error': len(reports)-len(evaluated),
             'pass_rate_evaluated': sum(r['passed'] for r in boolean)/len(boolean) if boolean else None,
             'pass_rate_all_tasks': sum(r['passed'] for r in boolean)/len(reports) if boolean and len(boolean) == len(reports) else None,
             'citation_precision_macro': sum(r['citation_precision'] for r in citations)/len(citations) if citations else None,
@@ -239,6 +269,8 @@ def main():
     prep.add_argument('--split', default='dev')
     prep.add_argument('--visible-count', type=int, default=0)
     prep.add_argument('--documents', type=Path)
+    prep.add_argument('--seed', type=int, help='Shuffle once before selecting tasks')
+    prep.add_argument('--limit', type=int, help='Optional smoke-test subset size')
     run = sub.add_parser('run')
     run.add_argument('--public', type=Path, required=True)
     run.add_argument('--config', type=Path, required=True)
@@ -257,7 +289,8 @@ def main():
     try:
         if args.command == 'prepare':
             result = prepare(args.dataset, args.benchmark, args.public, args.private,
-                split=args.split, visible_count=args.visible_count, documents_path=args.documents)
+                split=args.split, visible_count=args.visible_count, documents_path=args.documents,
+                seed=args.seed, limit=args.limit)
             print(json.dumps({'tasks': len(result['tasks']), 'dataset_sha256': result['dataset_sha256']}))
         elif args.command == 'run':
             run_stream(args.public, args.config, args.output, args.router_checkpoint, args.enable_tests)

@@ -41,10 +41,10 @@ class ScorerTests(unittest.TestCase):
 
     def test_changed_code_invalidates_old_passes(self):
         state = ledger()
-        state['history'] = [{'code': 'v1', 'visible_feedback': {'status': 'completed',
+        state['history'] = [{'code': 'def f(): return 1', 'visible_feedback': {'status': 'completed',
             'result': {'passed': 1, 'total': 1, 'failures': []}}}]
         self.assertEqual(self.scorer.score(coding_observation(state)).regime, 'complete')
-        state['history'].append({'code': 'v2', 'visible_feedback': None})
+        state['history'].append({'code': 'def f(): return 2', 'visible_feedback': None})
         self.assertFalse(coding_observation(state).requirements['0'])
         state['status'] = 'coordinator_finished'
         self.assertNotEqual(self.scorer.score(coding_observation(state)).regime, 'complete')

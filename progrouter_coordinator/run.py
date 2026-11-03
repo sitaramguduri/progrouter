@@ -77,7 +77,7 @@ def main():
             from routing import ModelOption, ProgressRouter, RoutingConfig
             predictor = (ProgressPredictor.load(args.predictor_checkpoint, encoder)
                          if args.predictor_checkpoint else ProgressPredictor(encoder, **cfg.get("predictor", {})))
-            pools = {role: [ModelOption(Model(**option["model"]), option["energy"], option["seconds"])
+            pools = {role: [ModelOption(Model(**option["model"]), option["energy"], option["seconds"], option.get("profile"))
                             for option in options] for role, options in cfg["candidates"].items()}
             selector = ProgressRouter(pools, predictor, RoutingConfig(**routing_cfg))
             if selector.config.cost_basis == "measured_task":

@@ -29,6 +29,7 @@ class DockerSandbox:
                 '--memory-swap', '2g', '--pids-limit', '128', '--cap-drop', 'ALL',
                 '--security-opt', 'no-new-privileges', '--user', '65534:65534',
                 '--tmpfs', '/tmp:rw,nosuid,size=512m', '--env', 'HOME=/tmp',
+                '--env', 'XDG_CACHE_HOME=/tmp/.cache',
                 '--env', 'HF_HUB_OFFLINE=1', '--env', 'TRANSFORMERS_OFFLINE=1',
                 '--mount', f'type=bind,src={root},dst=/work,readonly',
                 self.image, 'python', '-B', '/work/grade.py']
